@@ -14,10 +14,8 @@ const WORDING_ERRORS = {
 
 export default function LoginScreen() {
     const { height } = useWindowDimensions();
-    const { login } = useAuth();
+    const { login, isLoading } = useAuth();
     const theme = useTheme();
-
-    const [isPosting, setIsPosting] = useState(false);
     const [form, setForm] = useState({ [EMAIL]: '', [PASSWORD]: '' });
     const [errorForm, setErrorForm] = useState({
         [EMAIL]: null as string | null,
@@ -36,14 +34,11 @@ export default function LoginScreen() {
         setErrorForm(newErrors);
         if (newErrors[EMAIL] || newErrors[PASSWORD]) return;
 
-        setIsPosting(true);
         try {
             await login(form[EMAIL], form[PASSWORD]);
             router.replace('/');
         } catch (error: any) {
             Alert.alert('Error', WORDING_ERRORS.GENERIC_LOGIN_ERROR);
-        } finally {
-            setIsPosting(false);
         }
     };
 
@@ -118,8 +113,8 @@ export default function LoginScreen() {
                     icon="arrow-right"
                     style={{ marginTop: 20 }}
                     onPress={onLogin}
-                    disabled={isPosting}
-                    loading={isPosting}
+                    disabled={isLoading}
+                    loading={isLoading}
                 >
                     Ingresar
                 </Button>
