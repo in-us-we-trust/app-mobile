@@ -58,7 +58,7 @@ export default function LoginScreen() {
                 style={{ paddingHorizontal: 40 }}
                 contentContainerStyle={{ backgroundColor: theme.colors.background }}
             >
-                <View style={{ paddingTop: height * 0.35 }}>
+                <View style={{ paddingTop: height * 0.3 }}>
                     <Text variant="headlineLarge" style={{ fontWeight: 'bold', color: theme.colors.onBackground, marginBottom: 8 }}>
                         Ingresar
                     </Text>
