@@ -23,15 +23,6 @@ export default function TabsLayout() {
                 }}
             />
             <Tabs.Screen
-                name="device"
-                options={{
-                    title: 'Dispositivo',
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons name="doorbell" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
                 name="contacts"
                 options={{
                     title: 'Contactos',
@@ -40,6 +31,16 @@ export default function TabsLayout() {
                     ),
                 }}
             />
+            <Tabs.Screen
+                name="device/index"
+                options={{
+                    title: 'Dispositivo',
+                    tabBarIcon: ({ color, size }) => (
+                        <MaterialCommunityIcons name="doorbell" color={color} size={size} />
+                    ),
+                }}
+            />
+            <Tabs.Screen name="device/link-device" options={{ href: null }} />
         </Tabs>
     );
 }
