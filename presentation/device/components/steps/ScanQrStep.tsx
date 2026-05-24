@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Button, Text, useTheme } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -6,7 +6,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import styled from 'styled-components/native';
 
 interface ScanQRStepProps {
-    onNext: () => void;
+    onNext: (data: string) => void;
     onBack: () => void;
 }
 
@@ -56,7 +56,6 @@ export default function ScanQRStep({ onNext, onBack }: ScanQRStepProps) {
     const theme = useTheme();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanning, setScanning] = useState(false);
-    const [scanned, setScanned] = useState(false);
 
     const handlePressScan = async () => {
         if (!permission?.granted) {
@@ -66,11 +65,15 @@ export default function ScanQRStep({ onNext, onBack }: ScanQRStepProps) {
         setScanning(true);
     };
 
+
+    // reemplazá el useState de scanned:
+    const scannedRef = useRef(false);
+
     const handleBarCodeScanned = ({ data }: { data: string }) => {
-        if (scanned) return;
-        setScanned(true);
+        if (scannedRef.current) return;
+        scannedRef.current = true;
         console.log('QR escaneado:', data);
-        onNext();
+        onNext(data);
     };
 
     return (
@@ -115,7 +118,7 @@ export default function ScanQRStep({ onNext, onBack }: ScanQRStepProps) {
                     </Button>
                 )}
 
-                <Button mode="outlined" icon="keyboard" onPress={onNext}>
+                <Button mode="outlined" icon="keyboard" onPress={() => onNext('')}>
                     Ingresar código manualmente
                 </Button>
 
