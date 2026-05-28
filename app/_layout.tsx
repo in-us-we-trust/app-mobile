@@ -1,9 +1,17 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
+import { useAuth } from '@/presentation/auth/hooks/useAuth';
 
 export default function RootLayout() {
+    const { initializeAuth } = useAuth();
+
+    useEffect(() => {
+        void initializeAuth();
+    }, [initializeAuth]);
+
     return (
         <SafeAreaProvider>
             <PaperProvider theme={DefaultTheme}>
