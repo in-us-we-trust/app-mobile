@@ -1,9 +1,27 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { DrawerActions } from '@react-navigation/native';
+import { Tabs, useNavigation } from 'expo-router';
+import { TouchableOpacity } from 'react-native';
+import { useTheme } from 'react-native-paper';
 
 export default function TabsLayout() {
+    const navigation = useNavigation();
+    const theme = useTheme();
+
+    const menuButton = () => (
+        <TouchableOpacity
+            onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+            style={{ marginLeft: 16 }}
+        >
+            <MaterialCommunityIcons name="menu" size={24} color={theme.colors.primary} />
+        </TouchableOpacity>
+    );
+
     return (
-        <Tabs screenOptions={{ headerShown: false }}>
+        <Tabs screenOptions={{
+            headerShown: true,
+            headerLeft: menuButton,
+        }}>
             <Tabs.Screen
                 name="index"
                 options={{
@@ -40,7 +58,12 @@ export default function TabsLayout() {
                     ),
                 }}
             />
-            <Tabs.Screen name="device/link-device" options={{ href: null }} />
+            <Tabs.Screen
+                name="device/link-device"
+                options={{
+                    href: null,
+                    title: 'Vincular Dispositivo',
+                }} />
         </Tabs>
     );
 }

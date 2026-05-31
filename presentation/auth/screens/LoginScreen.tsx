@@ -56,9 +56,14 @@ export default function LoginScreen() {
         >
             <ScrollView
                 style={{ paddingHorizontal: 40 }}
-                contentContainerStyle={{ backgroundColor: theme.colors.background }}
+                contentContainerStyle={{
+                    backgroundColor: theme.colors.background,
+                    flexGrow: 1,
+                    justifyContent: 'center',
+                    paddingVertical: 40,
+                }}
             >
-                <View style={{ paddingTop: height * 0.3 }}>
+                <View>
                     <Text variant="headlineLarge" style={{ fontWeight: 'bold', color: theme.colors.onBackground, marginBottom: 8 }}>
                         Ingresar
                     </Text>
