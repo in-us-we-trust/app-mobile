@@ -1,7 +1,7 @@
 {
   "expo": {
     "scheme": "app-mobile",
-    "name": "app-mobile",
+    "name": "VigilIA",
     "slug": "app-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
