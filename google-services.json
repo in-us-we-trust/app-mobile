@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "188992870663",
+    "project_id": "tp-hogar-seguro",
+    "storage_bucket": "tp-hogar-seguro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:188992870663:android:4e8e98519c2f2759c24da2",
+        "android_client_info": {
+          "package_name": "com.anonymous.appmobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC59M7a2W4_C6JdgnKnzKDy2hKK8tsE6Fg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
