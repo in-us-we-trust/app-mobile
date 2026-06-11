@@ -3,6 +3,7 @@ import { DrawerContentScrollView } from '@react-navigation/drawer';
 import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useRouter } from 'expo-router';
 import { Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text, useTheme } from 'react-native-paper';
 import styled from 'styled-components/native';
 import { useAuth } from '@/presentation/auth/hooks/useAuth';
@@ -11,7 +12,7 @@ const AVATAR_PLACEHOLDER = 'https://ui-avatars.com/api/?background=random&name='
 
 // --- Styled Components ---
 
-const Wrapper = styled.View`
+const Wrapper = styled(SafeAreaView)`
   flex: 1;
 `;
 

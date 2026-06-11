@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { registerPushTokenAction } from '@/core/notifications/push-token-actions';
 
 // Configuración global: cómo manejar notificaciones cuando la app está en foreground
 Notifications.setNotificationHandler({
@@ -31,10 +32,15 @@ export function usePushNotifications(onTokenReady?: (token: string) => void) {
 
   useEffect(() => {
     registerForPushNotifications()
-      .then((expoPushToken) => {
+      .then(async (expoPushToken) => {
         if (expoPushToken) {
           setToken(expoPushToken);
           onTokenReady?.(expoPushToken);
+          await registerPushTokenAction({
+            deviceName: Device.modelName ?? Device.deviceName ?? 'Unknown',
+            platform: Platform.OS.toUpperCase(),
+            pushToken: expoPushToken,
+          });
         }
       })
       .catch((err: Error) => {

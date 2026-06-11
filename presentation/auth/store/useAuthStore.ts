@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { jwtDecode } from 'jwt-decode';
 import { loginAction, registerAction } from '@/core/auth/actions/auth-actions';
 import { setAuthToken } from '@/core/api/http-client';
 import { SecureStorageAdapter } from '@/helpers/adapters/secure-storage.adapter';
@@ -13,6 +14,17 @@ interface User {
     lastName: string;
 }
 
+interface JWTPayload {
+    user: {
+        id: string;
+        email: string;
+        firstName: string;
+        lastName: string;
+    };
+    iat: number;
+    exp: number;
+}
+
 interface AuthState {
     user: User | null;
     isAuthenticated: boolean;
@@ -22,6 +34,16 @@ interface AuthState {
     register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
     logout: () => void;
 }
+
+const decodeUser = (token: string): User => {
+    const payload = jwtDecode<JWTPayload>(token);
+    return {
+        id: payload.user.id,
+        email: payload.user.email,
+        firstName: payload.user.firstName,
+        lastName: payload.user.lastName,
+    };
+};
 
 export const useAuthStore = create<AuthState>((set) => ({
     user: null,
@@ -33,15 +55,16 @@ export const useAuthStore = create<AuthState>((set) => ({
 
             if (storedAccessToken) {
                 setAuthToken(storedAccessToken);
-                set({ isAuthenticated: true, isLoading: false });
+                const user = decodeUser(storedAccessToken);
+                set({ user, isAuthenticated: true, isLoading: false });
                 return;
             }
 
             setAuthToken(null);
-            set({ isAuthenticated: false, isLoading: false });
+            set({ user: null, isAuthenticated: false, isLoading: false });
         } catch (error) {
             setAuthToken(null);
-            set({ isAuthenticated: false, isLoading: false });
+            set({ user: null, isAuthenticated: false, isLoading: false });
         }
     },
     login: async (email: string, password: string) => {
@@ -54,17 +77,14 @@ export const useAuthStore = create<AuthState>((set) => ({
             }
 
             setAuthToken(loginResult.accessToken);
+            const user = decodeUser(loginResult.accessToken);
 
             await Promise.all([
                 SecureStorageAdapter.setItem(ACCESS_TOKEN_KEY, loginResult.accessToken),
                 SecureStorageAdapter.setItem(REFRESH_TOKEN_KEY, loginResult.refreshToken),
             ]);
 
-            set({
-                user: null,
-                isAuthenticated: true,
-                isLoading: false,
-            });
+            set({ user, isAuthenticated: true, isLoading: false });
         } catch (error) {
             setAuthToken(null);
             set({ isLoading: false });
