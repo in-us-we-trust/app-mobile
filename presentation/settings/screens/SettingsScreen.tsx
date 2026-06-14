@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Linking, ScrollView } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { AppState, AppStateStatus, Linking, ScrollView, View } from 'react-native';
 import styled from 'styled-components/native';
 import { List, Switch, Divider, Text, Button, Card, Snackbar } from 'react-native-paper';
 import { useTheme } from 'react-native-paper';
@@ -40,9 +40,19 @@ export default function SettingsScreen() {
     const theme = useTheme();
     const [notifStatus, setNotifStatus] = useState<PermissionStatus>('undetermined');
     const [snackVisible, setSnackVisible] = useState(false);
+    const appState = useRef(AppState.currentState);
 
     useEffect(() => {
         checkPermission();
+
+        const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+            if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+                checkPermission();
+            }
+            appState.current = nextAppState;
+        });
+
+        return () => subscription.remove();
     }, []);
 
     const checkPermission = async () => {
@@ -86,7 +96,7 @@ export default function SettingsScreen() {
                         onPress={handleNotifToggle}
                     />
                     {notifStatus === 'denied' && (
-                        <>
+                        <View>
                             <Divider />
                             <WarningContent>
                                 <WarningText>
@@ -101,7 +111,7 @@ export default function SettingsScreen() {
                                     Abrir Configuración
                                 </Button>
                             </WarningContent>
-                        </>
+                        </View>
                     )}
                 </StyledCard>
 

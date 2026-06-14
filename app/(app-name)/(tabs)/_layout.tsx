@@ -25,15 +25,6 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="index"
                 options={{
-                    title: 'Notificaciones',
-                    tabBarIcon: ({ color, size }) => (
-                        <MaterialCommunityIcons name="bell" color={color} size={size} />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="events"
-                options={{
                     title: 'Eventos',
                     tabBarIcon: ({ color, size }) => (
                         <MaterialCommunityIcons name="calendar-clock" color={color} size={size} />

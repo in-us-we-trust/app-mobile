@@ -6,6 +6,7 @@ import { useAuth } from '@/presentation/auth/hooks/useAuth';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import CustomDrawer from '@/presentation/CustomDrawer';
+import { EventsProvider } from '@/presentation/events/context/EventsContext';
 
 export default function AppLayout() {
     const { isAuthenticated, isLoading } = useAuth();
@@ -31,31 +32,33 @@ export default function AppLayout() {
     );
 
     return (
-        <GestureHandlerRootView style={{ flex: 1 }}>
-            <Drawer drawerContent={(props) => <CustomDrawer {...props} />} screenOptions={{ headerShown: false }}>
-                <Drawer.Screen
-                    name="(tabs)"
-                    options={{ drawerLabel: 'Inicio', headerShown: false }}
-                />
-                <Drawer.Screen
-                    name="profile"
-                    options={{
-                        drawerLabel: 'Perfil',
-                        title: 'Perfil',
-                        headerShown: true,
-                        headerLeft: backButton,
-                    }}
-                />
-                <Drawer.Screen
-                    name="settings"
-                    options={{
-                        drawerLabel: 'Configuración',
-                        title: 'Configuración',
-                        headerShown: true,
-                        headerLeft: backButton,
-                    }}
-                />
-            </Drawer>
-        </GestureHandlerRootView>
+        <EventsProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+                <Drawer drawerContent={(props) => <CustomDrawer {...props} />} screenOptions={{ headerShown: false }}>
+                    <Drawer.Screen
+                        name="(tabs)"
+                        options={{ drawerLabel: 'Inicio', headerShown: false }}
+                    />
+                    <Drawer.Screen
+                        name="profile"
+                        options={{
+                            drawerLabel: 'Perfil',
+                            title: 'Perfil',
+                            headerShown: true,
+                            headerLeft: backButton,
+                        }}
+                    />
+                    <Drawer.Screen
+                        name="settings"
+                        options={{
+                            drawerLabel: 'Configuración',
+                            title: 'Configuración',
+                            headerShown: true,
+                            headerLeft: backButton,
+                        }}
+                    />
+                </Drawer>
+            </GestureHandlerRootView>
+        </EventsProvider>
     );
 }

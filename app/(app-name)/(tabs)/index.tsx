@@ -1,2 +1,2 @@
-import NotificationsScreen from '@/presentation/notifications/screens/NotificationsScreen';
-export default NotificationsScreen;
+import EventsScreen from '@/presentation/events/screens/EventsScreen';
+export default EventsScreen;
