@@ -1,0 +1,59 @@
+import { Contact } from "../types";
+
+export const mockContacts: Contact[] = [
+    {
+        id: '1',
+        name: 'María González',
+        relation: 'Hija',
+        priority: 1,
+        type: 'cercano',
+        notify: true,
+        recognitionStatus: 'active',
+        photoUri: null,
+        createdAt: '2026-01-10T12:00:00Z',
+    },
+    {
+        id: '2',
+        name: 'Carlos Pérez',
+        relation: 'Vecino',
+        priority: 2,
+        type: 'cercano',
+        notify: true,
+        recognitionStatus: 'active',
+        photoUri: null,
+        createdAt: '2026-02-03T09:30:00Z',
+    },
+    {
+        id: '3',
+        name: 'Ana Martín',
+        relation: 'Encargada',
+        priority: 3,
+        type: 'cercano',
+        notify: true,
+        recognitionStatus: 'missing_photo',
+        photoUri: null,
+        createdAt: '2026-03-15T16:45:00Z',
+    },
+    {
+        id: '4',
+        name: 'Jorge Ríos',
+        relation: 'Repartidor habitual',
+        priority: null,
+        type: 'conocido',
+        notify: false,
+        recognitionStatus: 'active',
+        photoUri: null,
+        createdAt: '2026-04-01T08:00:00Z',
+    },
+];
+
+// Helper para tests / storybook: contacto "vacío" listo para un form de alta
+export const emptyContactDraft: Omit<Contact, 'id' | 'createdAt'> = {
+    name: '',
+    relation: '',
+    priority: null,
+    type: 'conocido',
+    notify: false,
+    recognitionStatus: 'pending',
+    photoUri: null,
+};
