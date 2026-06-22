@@ -1,109 +1,182 @@
 import React from 'react';
 import { TouchableOpacity } from 'react-native';
-import { useTheme } from 'react-native-paper';
+import { Avatar, IconButton, useTheme } from 'react-native-paper';
 import styled from 'styled-components/native';
-import { HomeEvent, EventSeverity } from '../types';
+import { HomeEvent, EventKind } from '../types';
 
-// ─── Severity config ──────────────────────────────────────────────────────────
+// ─── Config por tipo de evento ─────────────────────────────────────────────────
 
-const SEVERITY_CONFIG: Record<EventSeverity, { color: string; bg: string; label: string }> = {
-  critical: { color: '#E53935', bg: '#FDECEA', label: 'Crítico' },
-  warning:  { color: '#F57C00', bg: '#FFF3E0', label: 'Alerta'  },
-  info:     { color: '#1976D2', bg: '#E3F2FD', label: 'Info'    },
+const KIND_CONFIG: Record<
+  EventKind,
+  { icon: string; iconBg: string; iconColor: string; badgeLabel?: string; badgeColor?: string; badgeBg?: string }
+> = {
+  unknown_person: {
+    icon: 'account',
+    iconBg: '#1F2937',
+    iconColor: '#FFFFFF',
+    badgeLabel: 'Desconocido',
+    badgeColor: '#B45309',
+    badgeBg: '#FEF3C7',
+  },
+  recognized_person: {
+    // fallback si por algún motivo no hay personName (no debería pasar)
+    icon: 'account-check',
+    iconBg: '#16A34A',
+    iconColor: '#FFFFFF',
+    badgeLabel: '✓ Reconocido',
+    badgeColor: '#15803D',
+    badgeBg: '#DCFCE7',
+  },
+  device: {
+    icon: 'alert-circle-outline',
+    iconBg: '#FEF3E2',
+    iconColor: '#D97706',
+  },
 };
+
+const AVATAR_COLORS = ['#E53935', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6'];
+
+function getInitials(name: string) {
+  return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
+}
+
+function getAvatarColor(id: string) {
+  const idx = parseInt(id, 10) % AVATAR_COLORS.length;
+  return AVATAR_COLORS[Number.isNaN(idx) ? 0 : idx];
+}
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface EventRowProps {
   event: HomeEvent;
   onPress: (event: HomeEvent) => void;
-  isLast: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const EventRow: React.FC<EventRowProps> = ({ event, onPress, isLast }) => {
+export const EventRow: React.FC<EventRowProps> = ({ event, onPress }) => {
   const theme = useTheme();
-  const cfg = SEVERITY_CONFIG[event.severity];
+  const cfg = KIND_CONFIG[event.kind];
+  const isRecognized = event.kind === 'recognized_person' && !!event.personName;
+
+  const secondaryText = isRecognized
+    ? event.zone
+      ? `${event.personName} · ${event.zone}`
+      : event.personName
+    : event.zone;
 
   return (
-    <>
-      <Wrapper activeOpacity={0.7} onPress={() => onPress(event)}>
-        <Dot color={cfg.color} />
-        <Body>
-          <Title color={theme.colors.onBackground}>{event.title}</Title>
-          {event.zone ? (
-            <Zone color={theme.colors.onSurfaceVariant}>{event.zone}</Zone>
+    <Wrapper activeOpacity={0.7} onPress={() => onPress(event)} borderColor={theme.colors.outlineVariant}>
+      {isRecognized ? (
+        <Avatar.Text
+          size={44}
+          label={getInitials(event.personName!)}
+          style={{ backgroundColor: getAvatarColor(event.id) }}
+        />
+      ) : (
+        <IconTile bg={cfg.iconBg}>
+          <IconButton
+            icon={event.kind === 'device' && event.icon ? event.icon : cfg.icon}
+            size={20}
+            iconColor={cfg.iconColor}
+            style={{ margin: 0 }}
+          />
+        </IconTile>
+      )}
+
+      <Body>
+        <Title color={theme.colors.onBackground}>{event.title}</Title>
+        <SubRow>
+          {cfg.badgeLabel && (
+            <Badge bg={cfg.badgeBg!}>
+              <BadgeText color={cfg.badgeColor!}>{cfg.badgeLabel}</BadgeText>
+            </Badge>
+          )}
+          {secondaryText ? (
+            <Secondary color={theme.colors.onSurfaceVariant}>{secondaryText}</Secondary>
           ) : null}
-        </Body>
-        <Right>
-          <Chip bg={cfg.bg} color={cfg.color}>{cfg.label}</Chip>
-          <Time color={theme.colors.onSurfaceVariant}>
-            {event.date} · {event.time}
-          </Time>
-        </Right>
-      </Wrapper>
-      {!isLast && <Divider borderColor={theme.colors.outlineVariant} />}
-    </>
+        </SubRow>
+      </Body>
+
+      <Right>
+        {event.isNew && <NewDot />}
+        <Time color={theme.colors.onSurfaceVariant}>{event.time}</Time>
+      </Right>
+    </Wrapper>
   );
 };
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
-const Wrapper = styled(TouchableOpacity)`
+const Wrapper = styled(TouchableOpacity) <{ borderColor: string }>`
   flex-direction: row;
   align-items: center;
-  padding: 14px 16px;
+  padding: 14px;
+  background-color: #fff;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  border-width: 1px;
+  border-color: ${({ borderColor }) => borderColor};
 `;
 
-const Dot = styled.View<{ color: string }>`
-  width: 8px;
-  height: 8px;
-  border-radius: 4px;
-  background-color: ${({ color }) => color};
-  margin-right: 12px;
-  flex-shrink: 0;
+const IconTile = styled.View<{ bg: string }>`
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background-color: ${({ bg }) => bg};
+  align-items: center;
+  justify-content: center;
 `;
 
 const Body = styled.View`
   flex: 1;
+  margin-left: 12px;
 `;
 
 const Title = styled.Text<{ color: string }>`
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: ${({ color }) => color};
-  margin-bottom: 2px;
 `;
 
-const Zone = styled.Text<{ color: string }>`
+const SubRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-top: 4px;
+  gap: 6px;
+`;
+
+const Badge = styled.View<{ bg: string }>`
+  background-color: ${({ bg }) => bg};
+  border-radius: 8px;
+  padding: 2px 6px;
+`;
+
+const BadgeText = styled.Text<{ color: string }>`
+  font-size: 10px;
+  font-weight: 700;
+  color: ${({ color }) => color};
+`;
+
+const Secondary = styled.Text<{ color: string }>`
   font-size: 12px;
   color: ${({ color }) => color};
 `;
 
 const Right = styled.View`
   align-items: flex-end;
-  margin-left: 10px;
+  margin-left: 8px;
 `;
 
-const Chip = styled.Text<{ bg: string; color: string }>`
-  font-size: 10px;
-  font-weight: 600;
-  color: ${({ color }) => color};
-  background-color: ${({ bg }) => bg};
-  padding: 2px 7px;
-  border-radius: 10px;
-  overflow: hidden;
+const NewDot = styled.View`
+  width: 7px;
+  height: 7px;
+  border-radius: 3.5px;
+  background-color: #ef4444;
   margin-bottom: 4px;
 `;
 
 const Time = styled.Text<{ color: string }>`
-  font-size: 11px;
+  font-size: 12px;
   color: ${({ color }) => color};
-`;
-
-const Divider = styled.View<{ borderColor: string }>`
-  height: 1px;
-  background-color: ${({ borderColor }) => borderColor};
-  margin: 0 16px;
 `;

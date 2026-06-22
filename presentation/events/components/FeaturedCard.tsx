@@ -7,8 +7,8 @@ import { HomeEvent, EventSeverity } from '../types';
 
 const SEVERITY_CONFIG: Record<EventSeverity, { color: string; bg: string; label: string; icon: string }> = {
   critical: { color: '#E53935', bg: '#FDECEA', label: 'Crítico', icon: '⚠' },
-  warning:  { color: '#F57C00', bg: '#FFF3E0', label: 'Alerta',  icon: '!' },
-  info:     { color: '#1976D2', bg: '#E3F2FD', label: 'Info',    icon: 'i' },
+  warning: { color: '#F57C00', bg: '#FFF3E0', label: 'Alerta', icon: '!' },
+  info: { color: '#1976D2', bg: '#E3F2FD', label: 'Info', icon: 'i' },
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({ event, onPress }) =>
 
         <Meta>
           {event.zone ? (
-            <MetaText color={theme.colors.onSurfaceVariant}>📍 {event.zone}</MetaText>
+            <MetaText color={theme.colors.onSurfaceVariant}> {event.zone}</MetaText>
           ) : null}
           <MetaText color={theme.colors.onSurfaceVariant}>
             {event.date} · {event.time}

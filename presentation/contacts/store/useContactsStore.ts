@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Contact, CreateContactInput, RecognitionStatus } from '../types';
-import { mockContacts } from '../mocks/contactsMocks';
+import { MOCK_CONTACTS } from '../mocks/contactsMocks';
 
 type ContactsState = {
   contacts: Contact[];
@@ -28,7 +28,7 @@ export const useContactsStore = create<ContactsState>((set) => ({
     try {
       // TODO: reemplazar por el endpoint real (users API / notification-service)
       await new Promise((resolve) => setTimeout(resolve, 300));
-      set({ contacts: mockContacts, isLoading: false });
+      set({ contacts: MOCK_CONTACTS, isLoading: false });
     } catch (err) {
       set({ error: 'No se pudieron cargar los contactos', isLoading: false });
     }
