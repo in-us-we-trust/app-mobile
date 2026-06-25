@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Alert, PermissionsAndroid, Platform } from 'react-native';
 import styled from 'styled-components/native';
 import { useTheme } from 'react-native-paper';
 import { BleManager, Device } from 'react-native-ble-plx';
@@ -17,18 +18,61 @@ const Container = styled.View`
 
 type Step = 'scan' | 'connecting' | 'wifi' | 'link';
 
+const requestBlePermissions = async (): Promise<boolean> => {
+    if (Platform.OS !== 'android') return true;
+
+    if (Platform.Version >= 31) {
+        const results = await PermissionsAndroid.requestMultiple([
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+            PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+        ]);
+
+        return (
+            results[PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN] === PermissionsAndroid.RESULTS.GRANTED
+            && results[PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT] === PermissionsAndroid.RESULTS.GRANTED
+        );
+    }
+
+    const locationResult = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+    );
+
+    return locationResult === PermissionsAndroid.RESULTS.GRANTED;
+};
+
 export default function LinkDeviceScreen() {
     const theme = useTheme();
     const [step, setStep] = useState<Step>('scan');
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+    const [bleResponse, setBleResponse] = useState<string | null>(null);
 
     const stepIndex = { scan: 0, connecting: 0, wifi: 1, link: 2 }[step];
     const labels = ['Escanear QR', 'Configurar WiFi', 'Vincular'];
 
     const handleQRScanned = async (data: string) => {
         try {
-            const parsed = JSON.parse(data);
-            const deviceName = parsed.device_id;
+            let deviceName: string;
+
+            try {
+                const parsed = JSON.parse(data);
+                deviceName = parsed.BLUETOOTH ?? parsed.ble_name ?? parsed.device_id;
+            } catch {
+                // El QR no es JSON: asumimos que el contenido es directamente el nombre BLE.
+                deviceName = data.trim();
+            }
+
+            if (!deviceName || typeof deviceName !== 'string') {
+                Alert.alert('QR invalido', 'El QR no contiene un identificador de Bluetooth valido.');
+                setStep('scan');
+                return;
+            }
+
+            const hasBlePermissions = await requestBlePermissions();
+            if (!hasBlePermissions) {
+                Alert.alert('Permisos requeridos', 'Necesitas habilitar permisos de Bluetooth para vincular el dispositivo.');
+                setStep('scan');
+                return;
+            }
 
             setStep('connecting');
 
@@ -85,7 +129,7 @@ export default function LinkDeviceScreen() {
 
             {step === 'wifi' && (
                 <ConfigureWifiStep
-                    onNext={() => setStep('link')}
+                    onNext={(data) => { setBleResponse(data); setStep('link'); }}
                     onBack={() => setStep('scan')}
                     device={connectedDevice}
                 />
@@ -93,6 +137,7 @@ export default function LinkDeviceScreen() {
 
             {step === 'link' && (
                 <LinkStep
+                    bleResponse={bleResponse}
                     onNext={() => router.back()}
                     onBack={() => setStep('wifi')}
                 />

@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
 interface LinkStepProps {
+    bleResponse: string | null;
     onNext: () => void;
     onBack: () => void;
 }
@@ -46,13 +47,14 @@ const ButtonsContainer = styled.View`
 
 type Status = 'idle' | 'linking' | 'success' | 'error';
 
-export default function LinkStep({ onNext, onBack }: LinkStepProps) {
+export default function LinkStep({ bleResponse, onNext, onBack }: LinkStepProps) {
     const theme = useTheme();
     const [status, setStatus] = useState<Status>('idle');
 
     const handleLink = async () => {
         setStatus('linking');
-        // dummy linking
+        // TODO: enviar bleResponse al backend para registrar el dispositivo
+        console.log('Datos recibidos del dispositivo para vincular:', bleResponse);
         await new Promise(resolve => setTimeout(resolve, 2000));
         setStatus('success');
     };

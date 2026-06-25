@@ -5,14 +5,18 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Device } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
 
-const UART_SERVICE_UUID = '0000181c-0000-1000-8000-00805f9b34fb';
-const UART_RX_CHAR_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+const WIFI_SERVICE_UUID = '12345678-1234-1234-1234-123456789000';
+const WIFI_CREDENTIALS_CHAR_UUID = '12345678-1234-1234-1234-123456789001';
+const WIFI_RESPONSE_CHAR_UUID = '12345678-1234-1234-1234-123456789001';
+const WIFI_RESPONSE_TIMEOUT_MS = 300000;
 
 interface ConfigureWifiStepProps {
-    onNext: () => void;
+    onNext: (bleResponse: string) => void;
     onBack: () => void;
     device: Device | null;
 }
+
+
 
 const Container = styled.View`
   flex: 1;
@@ -56,22 +60,50 @@ const StyledInput = styled(TextInput)`
 
 export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureWifiStepProps) {
     const theme = useTheme();
-    const [ssid, setSsid] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
+    const [ssid, setSsid] = useState('Personal-817');
+    const [password, setPassword] = useState('RvTW7gzW9B');
+    const [showPassword, setShowPassword] = useState(true);
     const [isSending, setIsSending] = useState(false);
+    const [isWaitingResponse, setIsWaitingResponse] = useState(false);
+
+    const ensureConnectedAndDiscovered = async (currentDevice: Device): Promise<Device> => {
+        const connected = await currentDevice.isConnected();
+        const activeDevice = connected
+            ? currentDevice
+            : await (async () => {
+                const reconnected = await currentDevice.connect();
+                await reconnected.discoverAllServicesAndCharacteristics();
+                return reconnected;
+            })();
+
+        try {
+            await activeDevice.requestMTU(512);
+        } catch {
+            // MTU negotiation is best-effort; proceed with whatever MTU was agreed.
+        }
+
+        return activeDevice;
+    };
+
+    const writeCredentials = async (targetDevice: Device, payloadBase64: string) => {
+        await targetDevice.writeCharacteristicWithoutResponseForService(
+            WIFI_SERVICE_UUID,
+            WIFI_CREDENTIALS_CHAR_UUID,
+            payloadBase64,
+        );
+    };
 
     const handleContinue = async () => {
         if (!device) {
-            onNext();
+            onNext('');
             return;
         }
 
         try {
             setIsSending(true);
 
-            //TODO: REMOVER
-            const isConnected = await device.isConnected();
+            let activeDevice = await ensureConnectedAndDiscovered(device);
+            const isConnected = await activeDevice.isConnected();
             console.log('¿Conectado?', isConnected);
 
             if (!isConnected) {
@@ -83,19 +115,52 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
             const payload = JSON.stringify({ ssid, password });
             const base64 = Buffer.from(payload).toString('base64');
 
-            await device.writeCharacteristicWithoutResponseForService(
-                UART_SERVICE_UUID,
-                UART_RX_CHAR_UUID,
-                base64
-            );
+            console.log('Largo payload/base64:', payload.length, base64.length);
+
+            try {
+                await writeCredentials(activeDevice, base64);
+            } catch (firstWriteError) {
+                console.warn('Primer write falló. Reintentando tras reconectar...', firstWriteError);
+                activeDevice = await ensureConnectedAndDiscovered(device);
+                await writeCredentials(activeDevice, base64);
+            }
 
             console.log('Credenciales enviadas:', JSON.stringify({ ssid, password }));
+            setIsSending(false);
+            setIsWaitingResponse(true);
 
-            onNext();
+            await new Promise<void>((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    subscription.remove();
+                    reject(new Error('Timeout esperando respuesta del dispositivo.'));
+                }, WIFI_RESPONSE_TIMEOUT_MS);
+
+                const subscription = activeDevice.monitorCharacteristicForService(
+                    WIFI_SERVICE_UUID,
+                    WIFI_RESPONSE_CHAR_UUID,
+                    (error, characteristic) => {
+                        if (error) {
+                            clearTimeout(timeoutId);
+                            subscription.remove();
+                            reject(error);
+                            return;
+                        }
+
+                        if (characteristic?.value) {
+                            clearTimeout(timeoutId);
+                            subscription.remove();
+                            const decoded = Buffer.from(characteristic.value, 'base64').toString('utf8');
+                            console.log('Respuesta BLE recibida:', decoded);
+                            onNext(decoded);
+                            resolve();
+                        }
+                    },
+                );
+            });
         } catch (error) {
-            console.error('Error enviando credenciales:', error);
-            onNext();
+            console.error('Error enviando credenciales o esperando respuesta:', error);
         } finally {
+            setIsWaitingResponse(false);
             setIsSending(false);
         }
     };
@@ -146,10 +211,10 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
                     mode="contained"
                     icon="arrow-right"
                     onPress={handleContinue}
-                    disabled={!ssid || !password}
-                    loading={isSending}
+                    disabled={!ssid || !password || isWaitingResponse}
+                    loading={isSending || isWaitingResponse}
                 >
-                    Continuar
+                    {isWaitingResponse ? 'Esperando dispositivo...' : 'Continuar'}
                 </Button>
 
                 <Button
