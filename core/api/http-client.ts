@@ -100,3 +100,23 @@ httpClient.interceptors.request.use((config) => {
 
     return config;
 });
+
+httpClient.interceptors.response.use(
+    (response) => {
+        console.log(
+            `[HTTP response] ${response.config.method?.toUpperCase()} ${response.config.url} → ${response.status}`,
+            response.data,
+        );
+        return response;
+    },
+    (error) => {
+        const status = error.response?.status;
+        const url = error.config?.url;
+        const method = error.config?.method?.toUpperCase();
+        console.log(
+            `[HTTP error] ${method} ${url} → ${status ?? 'network error'}`,
+            error.response?.data ?? error.message,
+        );
+        return Promise.reject(error);
+    },
+);

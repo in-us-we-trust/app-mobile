@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Button, Text, useTheme, ActivityIndicator } from 'react-native-paper';
+import { useState } from 'react';
+import { Button, Text, TextInput, useTheme, ActivityIndicator } from 'react-native-paper';
 import styled from 'styled-components/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { Device } from 'react-native-ble-plx';
+import { useLinkDevice } from '@/presentation/device/hooks/useLinkDevice';
 
 interface LinkStepProps {
-    bleResponse: string | null;
+    deviceId: string | null;
+    device: Device | null;
     onNext: () => void;
     onBack: () => void;
 }
@@ -24,18 +26,17 @@ const IllustrationContainer = styled.View<{ backgroundColor: string }>`
   background-color: ${({ backgroundColor }) => backgroundColor};
   justify-content: center;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 8px;
 `;
 
 const Title = styled(Text)`
   font-weight: bold;
   text-align: center;
-  margin-bottom: 12px;
 `;
 
 const Subtitle = styled(Text)`
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 16px;
   line-height: 22px;
 `;
 
@@ -45,18 +46,18 @@ const ButtonsContainer = styled.View`
   margin-top: 16px;
 `;
 
-type Status = 'idle' | 'linking' | 'success' | 'error';
+const StyledInput = styled(TextInput)`
+  width: 100%;
+  margin-bottom: 12px;
+`;
 
-export default function LinkStep({ bleResponse, onNext, onBack }: LinkStepProps) {
+export default function LinkStep({ deviceId, device, onNext, onBack }: LinkStepProps) {
     const theme = useTheme();
-    const [status, setStatus] = useState<Status>('idle');
+    const { status, linkDevice } = useLinkDevice();
+    const [deviceName, setDeviceName] = useState('Timbre puerta principal');
 
     const handleLink = async () => {
-        setStatus('linking');
-        // TODO: enviar bleResponse al backend para registrar el dispositivo
-        console.log('Datos recibidos del dispositivo para vincular:', bleResponse);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setStatus('success');
+        await linkDevice(deviceId, device, deviceName);
     };
 
     const icon = {
@@ -91,16 +92,32 @@ export default function LinkStep({ bleResponse, onNext, onBack }: LinkStepProps)
             </Title>
 
             <Subtitle variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                {status === 'idle' && 'Presioná el botón para vincular tu timbre a tu cuenta.'}
+                {status === 'idle' && 'Poné un nombre a tu timbre para identificarlo fácilmente.'}
                 {status === 'linking' && 'Estamos conectando tu timbre, esperá un momento.'}
                 {status === 'success' && 'Tu timbre fue vinculado correctamente. Ya podés usarlo.'}
                 {status === 'error' && 'No pudimos vincular el timbre. Intentalo de nuevo.'}
             </Subtitle>
 
+            {/* Input de nombre — visible solo en idle y error */}
+            {(status === 'idle' || status === 'error') && (
+                <StyledInput
+                    label="Nombre del dispositivo"
+                    mode="outlined"
+                    value={deviceName}
+                    onChangeText={setDeviceName}
+                    left={<TextInput.Icon icon="doorbell" />}
+                />
+            )}
+
             <ButtonsContainer>
                 {status === 'idle' && (
                     <>
-                        <Button mode="contained" icon="link-variant" onPress={handleLink}>
+                        <Button
+                            mode="contained"
+                            icon="link-variant"
+                            onPress={handleLink}
+                            disabled={!deviceName.trim()}
+                        >
                             Vincular
                         </Button>
                         <Button
@@ -114,18 +131,19 @@ export default function LinkStep({ bleResponse, onNext, onBack }: LinkStepProps)
                 )}
 
                 {status === 'success' && (
-                    <Button
-                        mode="contained"
-                        icon="check"
-                        onPress={() => router.replace('/(app-name)/(tabs)/device')}
-                    >
+                    <Button mode="contained" icon="check" onPress={onNext}>
                         Ir al dispositivo
                     </Button>
                 )}
 
                 {status === 'error' && (
                     <>
-                        <Button mode="contained" icon="refresh" onPress={handleLink}>
+                        <Button
+                            mode="contained"
+                            icon="refresh"
+                            onPress={handleLink}
+                            disabled={!deviceName.trim()}
+                        >
                             Reintentar
                         </Button>
                         <Button

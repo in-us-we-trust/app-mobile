@@ -11,12 +11,29 @@ const WIFI_RESPONSE_CHAR_UUID = '12345678-1234-1234-1234-123456789001';
 const WIFI_RESPONSE_TIMEOUT_MS = 300000;
 
 interface ConfigureWifiStepProps {
-    onNext: (bleResponse: string) => void;
+    onNext: (deviceId: string, device: Device) => void;
     onBack: () => void;
     device: Device | null;
 }
 
+type WifiResponsePayload = {
+    deviceId?: string;
+    macAddress?: string;
+    mac_address?: string;
+    device_id?: string;
+};
 
+const extractDeviceId = (decodedPayload: string): string | null => {
+    const parsed = JSON.parse(decodedPayload) as WifiResponsePayload;
+    const candidate = parsed.deviceId ?? parsed.macAddress ?? parsed.mac_address ?? parsed.device_id;
+
+    if (typeof candidate !== 'string') {
+        return null;
+    }
+
+    const normalized = candidate.trim();
+    return normalized.length > 0 ? normalized : null;
+};
 
 const Container = styled.View`
   flex: 1;
@@ -32,18 +49,17 @@ const IllustrationContainer = styled.View<{ backgroundColor: string }>`
   background-color: ${({ backgroundColor }) => backgroundColor};
   justify-content: center;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 8px;
 `;
 
 const Title = styled(Text)`
   font-weight: bold;
   text-align: center;
-  margin-bottom: 12px;
 `;
 
 const Subtitle = styled(Text)`
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 12px;
   line-height: 22px;
 `;
 
@@ -95,7 +111,6 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
 
     const handleContinue = async () => {
         if (!device) {
-            onNext('');
             return;
         }
 
@@ -117,19 +132,8 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
 
             console.log('Largo payload/base64:', payload.length, base64.length);
 
-            try {
-                await writeCredentials(activeDevice, base64);
-            } catch (firstWriteError) {
-                console.warn('Primer write falló. Reintentando tras reconectar...', firstWriteError);
-                activeDevice = await ensureConnectedAndDiscovered(device);
-                await writeCredentials(activeDevice, base64);
-            }
-
-            console.log('Credenciales enviadas:', JSON.stringify({ ssid, password }));
-            setIsSending(false);
-            setIsWaitingResponse(true);
-
-            await new Promise<void>((resolve, reject) => {
+            // 1. Suscribirse ANTES de escribir para no perder la notificación
+            const responsePromise = new Promise<string>((resolve, reject) => {
                 const timeoutId = setTimeout(() => {
                     subscription.remove();
                     reject(new Error('Timeout esperando respuesta del dispositivo.'));
@@ -151,12 +155,40 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
                             subscription.remove();
                             const decoded = Buffer.from(characteristic.value, 'base64').toString('utf8');
                             console.log('Respuesta BLE recibida:', decoded);
-                            onNext(decoded);
-                            resolve();
+                            resolve(decoded);
                         }
                     },
                 );
             });
+
+            // 2. Escribir credenciales después de estar suscriptos
+            try {
+                await writeCredentials(activeDevice, base64);
+            } catch (firstWriteError) {
+                console.warn('Primer write falló. Reintentando tras reconectar...', firstWriteError);
+                activeDevice = await ensureConnectedAndDiscovered(device);
+                await writeCredentials(activeDevice, base64);
+            }
+
+            console.log('Credenciales enviadas:', JSON.stringify({ ssid, password }));
+            setIsSending(false);
+            setIsWaitingResponse(true);
+
+            // 3. Parsear deviceId/macAddress y pasar al siguiente step junto con el device activo
+            const decoded = await responsePromise;
+            const parsedDeviceId = extractDeviceId(decoded);
+            const fallbackDeviceId = typeof activeDevice.id === 'string' ? activeDevice.id.trim() : '';
+            const nextDeviceId = parsedDeviceId ?? (fallbackDeviceId.length > 0 ? fallbackDeviceId : null);
+
+            if (!parsedDeviceId && nextDeviceId) {
+                console.warn('Respuesta BLE sin deviceId/macAddress. Usando activeDevice.id como fallback:', nextDeviceId);
+            }
+
+            if (!nextDeviceId) {
+                throw new Error(`Respuesta BLE sin identificador de dispositivo valido: ${decoded}`);
+            }
+
+            onNext(nextDeviceId, activeDevice);
         } catch (error) {
             console.error('Error enviando credenciales o esperando respuesta:', error);
         } finally {
@@ -180,7 +212,7 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
             </Title>
 
             <Subtitle variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                Ingresá los datos de tu red WiFi para conectar el timbre a internet.
+                Ingresá los datos de tu red WiFi.
             </Subtitle>
 
             <StyledInput

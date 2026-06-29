@@ -44,7 +44,8 @@ export default function LinkDeviceScreen() {
     const theme = useTheme();
     const [step, setStep] = useState<Step>('scan');
     const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-    const [bleResponse, setBleResponse] = useState<string | null>(null);
+    const [deviceId, setDeviceId] = useState<string | null>(null);
+    const [activeDevice, setActiveDevice] = useState<Device | null>(null);
 
     const stepIndex = { scan: 0, connecting: 0, wifi: 1, link: 2 }[step];
     const labels = ['Escanear QR', 'Configurar WiFi', 'Vincular'];
@@ -87,7 +88,7 @@ export default function LinkDeviceScreen() {
 
                 if (device && device.name === deviceName) {
                     manager.stopDeviceScan();
-                    clearTimeout(timeoutId); // cancelá el timeout
+                    clearTimeout(timeoutId);
                     try {
                         const connected = await device.connect();
                         await connected.discoverAllServicesAndCharacteristics();
@@ -129,15 +130,31 @@ export default function LinkDeviceScreen() {
 
             {step === 'wifi' && (
                 <ConfigureWifiStep
-                    onNext={(data) => { setBleResponse(data); setStep('link'); }}
-                    onBack={() => setStep('scan')}
                     device={connectedDevice}
+                    onBack={() => setStep('scan')}
+                    onNext={(id, dev) => {
+                        const normalizedId = typeof id === 'string' ? id.trim() : '';
+
+                        if (!normalizedId || !dev) {
+                            Alert.alert(
+                                'No se pudo continuar',
+                                'No recibimos un identificador valido del dispositivo. Volve a intentar la configuracion WiFi.',
+                            );
+                            setStep('wifi');
+                            return;
+                        }
+
+                        setDeviceId(normalizedId);
+                        setActiveDevice(dev);
+                        setStep('link');
+                    }}
                 />
             )}
 
             {step === 'link' && (
                 <LinkStep
-                    bleResponse={bleResponse}
+                    deviceId={deviceId}
+                    device={activeDevice}
                     onNext={() => router.back()}
                     onBack={() => setStep('wifi')}
                 />

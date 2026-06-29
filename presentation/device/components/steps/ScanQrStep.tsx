@@ -19,20 +19,20 @@ const Container = styled.View`
 
 const IllustrationContainer = styled.View<{ backgroundColor: string }>`
   width: 100%;
-  height: 220px;
+  height: 200px;
   border-radius: 16px;
   background-color: ${({ backgroundColor }) => backgroundColor};
   justify-content: center;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 8px;
 `;
 
 const CameraContainer = styled.View`
   width: 100%;
-  height: 220px;
+  height: 200px;
   border-radius: 16px;
   overflow: hidden;
-  margin-bottom: 32px;
+  margin-bottom: 8px;
 `;
 
 const Title = styled(Text)`

@@ -3,9 +3,14 @@ import { AppState, AppStateStatus, Linking, ScrollView, View } from 'react-nativ
 import styled from 'styled-components/native';
 import { List, Switch, Divider, Text, Button, Card, Snackbar } from 'react-native-paper';
 import { useTheme } from 'react-native-paper';
+import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import { deletePushTokenAction, registerPushTokenAction } from '@/core/notifications/push-token-actions';
+import { SecureStorageAdapter } from '@/helpers/adapters/secure-storage.adapter';
 
 type PermissionStatus = 'granted' | 'denied' | 'undetermined';
+const PUSH_TOKEN_DEVICE_ID_KEY = 'PUSH_TOKEN_DEVICE_ID';
 
 const Container = styled.View`
   flex: 1;
@@ -40,7 +45,10 @@ export default function SettingsScreen() {
     const theme = useTheme();
     const [notifStatus, setNotifStatus] = useState<PermissionStatus>('undetermined');
     const [snackVisible, setSnackVisible] = useState(false);
+    const [tokenRegistrationError, setTokenRegistrationError] = useState<string | null>(null);
     const appState = useRef(AppState.currentState);
+    const permissionStatusRef = useRef<PermissionStatus>('undetermined');
+    const registeredPushDeviceIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         checkPermission();
@@ -57,7 +65,80 @@ export default function SettingsScreen() {
 
     const checkPermission = async () => {
         const { status } = await Notifications.getPermissionsAsync();
-        setNotifStatus(status as PermissionStatus);
+        const nextStatus = status as PermissionStatus;
+        const previousStatus = permissionStatusRef.current;
+
+        if (previousStatus === 'granted' && nextStatus === 'denied') {
+            await deleteDevicePushToken();
+        }
+
+        setNotifStatus(nextStatus);
+        permissionStatusRef.current = nextStatus;
+
+        if (nextStatus === 'granted') {
+            await registerDevicePushToken();
+        }
+    };
+
+    const getStoredPushDeviceId = async (): Promise<number | null> => {
+        const storedId = await SecureStorageAdapter.getItem(PUSH_TOKEN_DEVICE_ID_KEY);
+        if (!storedId) return null;
+
+        const parsedId = Number(storedId);
+        return Number.isFinite(parsedId) ? parsedId : null;
+    };
+
+    const deleteDevicePushToken = async () => {
+        try {
+            const appDeviceId =
+                registeredPushDeviceIdRef.current ?? (await getStoredPushDeviceId());
+
+            if (!appDeviceId) return;
+
+            await deletePushTokenAction(appDeviceId);
+            registeredPushDeviceIdRef.current = null;
+            await SecureStorageAdapter.deleteItem(PUSH_TOKEN_DEVICE_ID_KEY);
+            setTokenRegistrationError(null);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'No se pudo eliminar el token push';
+            setTokenRegistrationError(message);
+            setSnackVisible(true);
+        }
+    };
+
+    const registerDevicePushToken = async () => {
+        try {
+            if (!Device.isDevice) return;
+
+            if (Platform.OS === 'android') {
+                await Notifications.setNotificationChannelAsync('default', {
+                    name: 'default',
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                    lightColor: '#FF231F7C',
+                });
+            }
+
+            const deviceToken = await Notifications.getDevicePushTokenAsync();
+
+            const registeredPushToken = await registerPushTokenAction({
+                deviceName: Device.modelName ?? Device.deviceName ?? 'Unknown',
+                platform: Platform.OS.toUpperCase(),
+                pushToken: String(deviceToken.data),
+            });
+
+            registeredPushDeviceIdRef.current = registeredPushToken.id;
+            await SecureStorageAdapter.setItem(
+                PUSH_TOKEN_DEVICE_ID_KEY,
+                String(registeredPushToken.id),
+            );
+
+            setTokenRegistrationError(null);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'No se pudo registrar el token push';
+            setTokenRegistrationError(message);
+            setSnackVisible(true);
+        }
     };
 
     const handleNotifToggle = async () => {
@@ -67,6 +148,7 @@ export default function SettingsScreen() {
             const { status } = await Notifications.requestPermissionsAsync();
             setNotifStatus(status as PermissionStatus);
             if (status === 'denied') setSnackVisible(true);
+            if (status === 'granted') await registerDevicePushToken();
         }
     };
 
@@ -147,7 +229,7 @@ export default function SettingsScreen() {
                 duration={4000}
                 action={{ label: 'Configuración', onPress: () => Linking.openSettings() }}
             >
-                Permiso denegado. Podés activarlo desde Configuración.
+                {tokenRegistrationError ?? 'Permiso denegado. Podés activarlo desde Configuración.'}
             </Snackbar>
         </Container>
     );

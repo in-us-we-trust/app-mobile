@@ -46,7 +46,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-04-01T08:00:00Z',
     },
     {
-        id: '1',
+        id: '5',
         name: 'María González',
         relation: 'Hija',
         priority: 1,
@@ -57,7 +57,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-01-10T12:00:00Z',
     },
     {
-        id: '2',
+        id: '6',
         name: 'Carlos Pérez',
         relation: 'Vecino',
         priority: 2,
@@ -68,7 +68,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-02-03T09:30:00Z',
     },
     {
-        id: '3',
+        id: '7',
         name: 'Ana Martín',
         relation: 'Encargada',
         priority: 3,
@@ -79,7 +79,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-03-15T16:45:00Z',
     },
     {
-        id: '4',
+        id: '8',
         name: 'Jorge Ríos',
         relation: 'Repartidor habitual',
         priority: null,
@@ -90,7 +90,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-04-01T08:00:00Z',
     },
     {
-        id: '1',
+        id: '9',
         name: 'María González',
         relation: 'Hija',
         priority: 1,
@@ -101,7 +101,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-01-10T12:00:00Z',
     },
     {
-        id: '2',
+        id: '10',
         name: 'Carlos Pérez',
         relation: 'Vecino',
         priority: 2,
@@ -112,7 +112,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-02-03T09:30:00Z',
     },
     {
-        id: '3',
+        id: '11',
         name: 'Ana Martín',
         relation: 'Encargada',
         priority: 3,
@@ -123,7 +123,7 @@ export const MOCK_CONTACTS: Contact[] = [
         createdAt: '2026-03-15T16:45:00Z',
     },
     {
-        id: '4',
+        id: '12',
         name: 'Jorge Ríos',
         relation: 'Repartidor habitual',
         priority: null,
