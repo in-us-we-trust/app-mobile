@@ -48,7 +48,7 @@ export default function Stepper({ current, total, label }: StepperProps) {
         <View>
             <Container>
                 <StepText style={{ color: theme.colors.primary }}>
-                    STEP {current + 1} OF {total}
+                    PASO {current + 1} DE {total}
                 </StepText>
                 {label && (
                     <LabelText style={{ color: theme.colors.onSurfaceVariant }}>

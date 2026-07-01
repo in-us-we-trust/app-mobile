@@ -59,7 +59,7 @@ const Title = styled(Text)`
 
 const Subtitle = styled(Text)`
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 12xpx;
   line-height: 22px;
 `;
 
@@ -76,8 +76,8 @@ const StyledInput = styled(TextInput)`
 
 export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureWifiStepProps) {
     const theme = useTheme();
-    const [ssid, setSsid] = useState('Personal-817');
-    const [password, setPassword] = useState('RvTW7gzW9B');
+    const [ssid, setSsid] = useState('');
+    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [isWaitingResponse, setIsWaitingResponse] = useState(false);

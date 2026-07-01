@@ -4,6 +4,7 @@ import { Button, Text, useTheme } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import styled from 'styled-components/native';
+import { router } from 'expo-router';
 
 interface ScanQRStepProps {
     onNext: (data: string) => void;
@@ -129,6 +130,14 @@ export default function ScanQRStep({ onNext, onBack }: ScanQRStepProps) {
                     labelStyle={{ color: theme.colors.onSurfaceVariant }}
                 >
                     No veo el botón de sincronización
+                </Button>
+                <Button
+                    mode="text"
+                    onPress={() => router.navigate('/device')}
+                    style={{ marginTop: 4 }}
+                    contentStyle={{ height: 44 }}
+                >
+                    Cancelar
                 </Button>
             </ButtonsContainer>
         </Container>
