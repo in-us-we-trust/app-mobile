@@ -42,6 +42,12 @@ export default function ContactsLayout() {
                 }}
             />
             <Stack.Screen
+                name="new/photo"
+                options={{
+                    title: 'Elegir foto',
+                }}
+            />
+            <Stack.Screen
                 name="new/confirmation"
                 options={{
                     title: 'Contacto agregado',

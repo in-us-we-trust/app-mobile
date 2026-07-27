@@ -1,36 +1,54 @@
-import React, { useState } from 'react';
-import { ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Alert, ScrollView, View } from 'react-native';
 import styled from 'styled-components/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { TextInput, Switch, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ContactType } from './NewContactTypeScreen';
+import { useContacts } from '../hooks/useContacts';
+import { usePhotoPicker } from '../hooks/usePhotoPicker';
 
 export default function NewContactDetailsScreen() {
   const router = useRouter();
   const { type } = useLocalSearchParams<{ type: ContactType }>();
   const isNotify = type === 'notify';
+  const { addContactos, isSubmitting } = useContacts();
+  const { selectedCaptures, clearSelection } = usePhotoPicker();
 
   const [name, setName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [role, setRole] = useState('');
   const [email, setEmail] = useState('');
   const [notify, setNotify] = useState(true);
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
-  const handleSave = () => {
-    const payload = {
-      type,
-      name,
-      role,
-      photoUri,
-      // Solo se manda email/notify si es un contacto "a notificar"
-      ...(isNotify && { email, notify }),
-    };
-    // TODO: conectar con el hook/servicio real de creación de contacto
-    router.push({
-      pathname: '/contacts/new/confirmation',
-      params: { name, type, hasPhoto: photoUri ? '1' : '0' },
-    });
+  // Arranque limpio de un intento nuevo de alta (cubre re-entradas tras
+  // cancelar o tras haber elegido una foto en un intento anterior).
+  useEffect(() => {
+    clearSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      // TODO: reemplazar por las fotos reales una vez que se implemente la
+      // captura (el backend requiere al menos 3 imágenes en base64).
+      await addContactos({
+        name,
+        lastName,
+        role,
+        email: isNotify ? email : undefined,
+        notify: isNotify ? notify : false,
+        type: isNotify ? 'cercano' : 'conocido',
+        images: [],
+      });
+      clearSelection();
+      router.push({
+        pathname: '/contacts/new/confirmation',
+        params: { name, type, hasPhoto: selectedCaptures.length > 0 ? '1' : '0' },
+      });
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo agregar el contacto. Intentalo de nuevo.');
+    }
   };
 
   return (
@@ -39,11 +57,39 @@ export default function NewContactDetailsScreen() {
         contentContainerStyle={{ padding: 20, alignItems: 'center', flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
       >
-        <PhotoPicker onPress={() => {/* TODO: abrir cámara / image picker */ }}>
-          <MaterialCommunityIcons name="camera-outline" size={26} color="#6C4EF5" />
-        </PhotoPicker>
-        <PhotoLabel>Tomar foto</PhotoLabel>
-        <PhotoHint>La IA usa esta foto para reconocer a la persona en la puerta.</PhotoHint>
+        {selectedCaptures.length === 0 ? (
+          <>
+            <PhotoPicker onPress={() => router.push('/contacts/new/photo')}>
+              <MaterialCommunityIcons name="camera-outline" size={26} color="#6C4EF5" />
+            </PhotoPicker>
+            <PhotoLabel>Tomar foto</PhotoLabel>
+          </>
+        ) : (
+          <>
+            <PhotoLabel>
+              {`${selectedCaptures.length} foto${selectedCaptures.length > 1 ? 's' : ''} seleccionada${selectedCaptures.length > 1 ? 's' : ''}`}
+            </PhotoLabel>
+            <View style={{ height: 110, width: '100%' }}>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 10, paddingVertical: 8 }}
+                style={{ width: '100%', marginTop: 4 }}
+              >
+                <AddPhotoTile onPress={() => router.push('/contacts/new/photo')}>
+                  <MaterialCommunityIcons name="plus" size={24} color="#6C4EF5" />
+                </AddPhotoTile>
+                {selectedCaptures.map((capture) => (
+                  <PhotoTile key={capture.id}>
+                    <PhotoTileImage source={{ uri: capture.imageUri }} />
+                  </PhotoTile>
+                ))}
+              </ScrollView>
+            </View>
+          </>
+        )}
+        <PhotoHint>La IA usa estas foto para reconocer a la persona en la puerta.</PhotoHint>
 
         {/* width: 100% explícito acá evita que el TextInput, al no tener
                     tamaño propio, herede el flex: 1 del contenedor y se estire. */}
@@ -56,6 +102,18 @@ export default function NewContactDetailsScreen() {
             onChangeText={setName}
             style={{ backgroundColor: '#fff' }}
           />
+          {!isNotify && (
+            <>
+              <FieldLabel>Apellido</FieldLabel>
+              <TextInput
+                mode="outlined"
+                placeholder="Ej. Ríos"
+                value={lastName}
+                onChangeText={setLastName}
+                style={{ backgroundColor: '#fff', marginBottom: 4 }}
+              />
+            </>
+          )}
 
           <FieldLabel>Relación / Rol</FieldLabel>
           <TextInput
@@ -65,7 +123,6 @@ export default function NewContactDetailsScreen() {
             onChangeText={setRole}
             style={{ backgroundColor: '#fff', marginBottom: 4 }}
           />
-
           {isNotify && (
             <>
               <FieldLabel>Email</FieldLabel>
@@ -78,20 +135,28 @@ export default function NewContactDetailsScreen() {
                 keyboardType="email-address"
                 style={{ backgroundColor: '#fff' }}
               />
-
-              <SwitchRow>
-                <SwitchTextWrapper>
-                  <SwitchTitle>Notificar en incidentes</SwitchTitle>
-                  <SwitchDescription>Le llega una alerta si pasa algo.</SwitchDescription>
-                </SwitchTextWrapper>
-                <Switch value={notify} onValueChange={setNotify} color="#6C4EF5" />
-              </SwitchRow>
             </>
+          )}
+
+          {isNotify && (
+            <SwitchRow>
+              <SwitchTextWrapper>
+                <SwitchTitle>Notificar en incidentes</SwitchTitle>
+                <SwitchDescription>Le llega una alerta si pasa algo.</SwitchDescription>
+              </SwitchTextWrapper>
+              <Switch value={notify} onValueChange={setNotify} color="#6C4EF5" />
+            </SwitchRow>
           )}
         </FormSection>
 
         <Footer>
-          <Button mode="contained" onPress={handleSave} contentStyle={{ height: 48 }}>
+          <Button
+            mode="contained"
+            onPress={handleSave}
+            contentStyle={{ height: 48 }}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
             Guardar contacto
           </Button>
           <Button
@@ -125,6 +190,30 @@ const PhotoPicker = styled.Pressable`
   align-items: center;
   justify-content: center;
   margin-top: 8px;
+`;
+
+const AddPhotoTile = styled.Pressable`
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  border-width: 1.5px;
+  border-color: #6C4EF5;
+  border-style: dashed;
+  align-items: center;
+  justify-content: center;
+`;
+
+const PhotoTile = styled.View`
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+`;
+
+const PhotoTileImage = styled.Image`
+  width: 100%;
+  height: 100%;
 `;
 
 const PhotoLabel = styled.Text`
