@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { FlatList } from 'react-native';
+import { Alert, FlatList } from 'react-native';
 import styled from 'styled-components/native';
 import { useRouter } from 'expo-router';
 import { SegmentedButtons, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { MOCK_DOORBELL_CAPTURES } from '../mocks/doorbellCapturesMock';
 import { DoorbellCapture } from '../types';
@@ -12,11 +13,13 @@ type PhotoSource = 'timbre' | 'galeria';
 
 export default function ChoosePhotoScreen() {
   const router = useRouter();
-  const { selectedCaptures, setSelectedCaptures } = usePhotoPicker();
+  const { selectedCaptures, setSelectedCaptures, galleryCaptures, addGalleryCaptures } =
+    usePhotoPicker();
   const [source, setSource] = useState<PhotoSource>('timbre');
   const [selectedIds, setSelectedIds] = useState<string[]>(
     selectedCaptures.map((c) => c.id),
   );
+  const [isLoadingGallery, setIsLoadingGallery] = useState(false);
 
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) =>
@@ -24,12 +27,51 @@ export default function ChoosePhotoScreen() {
     );
   };
 
+  const pickFromGallery = async () => {
+    setIsLoadingGallery(true);
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permiso necesario',
+          'Necesitamos acceso a tu galería para que puedas elegir una foto.',
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        selectionLimit: 15,
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets?.length) return;
+
+      const newCaptures: DoorbellCapture[] = result.assets.map((asset, index) => ({
+        id: asset.assetId ?? `${asset.uri}-${index}`,
+        label: 'Galería',
+        imageUri: asset.uri,
+      }));
+
+      addGalleryCaptures(newCaptures);
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...newCaptures.map((c) => c.id)])));
+    } finally {
+      setIsLoadingGallery(false);
+    }
+  };
+
   const handleConfirm = () => {
-    const captures = MOCK_DOORBELL_CAPTURES.filter((c) => selectedIds.includes(c.id));
+    const allCaptures = [...MOCK_DOORBELL_CAPTURES, ...galleryCaptures];
+    const captures = allCaptures.filter((c) => selectedIds.includes(c.id));
     if (captures.length === 0) return;
     setSelectedCaptures(captures);
     router.back();
   };
+
+  const handleBack = () => {
+    router.back();
+  }
 
   return (
     <Container>
@@ -62,20 +104,58 @@ export default function ChoosePhotoScreen() {
           />
         </>
       ) : (
-        <EmptyGallery>
-          <MaterialCommunityIcons name="image-multiple-outline" size={40} color="#ccc" />
-          <EmptyGalleryText>Elegir fotos de tu galería va a estar disponible pronto.</EmptyGalleryText>
-        </EmptyGallery>
+        <>
+          <GalleryActions>
+            <Button
+              mode="outlined"
+              icon="image-multiple-outline"
+              onPress={pickFromGallery}
+              loading={isLoadingGallery}
+              disabled={isLoadingGallery}
+            >
+              {galleryCaptures.length > 0 ? 'Agregar más fotos' : 'Elegir de la galería'}
+            </Button>
+          </GalleryActions>
+
+          {galleryCaptures.length === 0 ? (
+            <EmptyGallery>
+              <MaterialCommunityIcons name="image-multiple-outline" size={40} color="#ccc" />
+              <EmptyGalleryText>Elegí una o más fotos de tu galería para usarlas como referencia.</EmptyGalleryText>
+            </EmptyGallery>
+          ) : (
+            <FlatList
+              data={galleryCaptures}
+              keyExtractor={(item) => item.id}
+              numColumns={3}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}
+              columnWrapperStyle={{ gap: 12 }}
+              renderItem={({ item }) => (
+                <CaptureCard
+                  capture={item}
+                  selected={selectedIds.includes(item.id)}
+                  onPress={() => toggleSelection(item.id)}
+                />
+              )}
+            />
+          )}
+        </>
       )}
 
       <Footer>
         <Button
           mode="contained"
           onPress={handleConfirm}
-          disabled={source === 'galeria' || selectedIds.length === 0}
+          disabled={selectedIds.length === 0}
           contentStyle={{ height: 48 }}
         >
           {selectedIds.length > 0 ? `Usar ${selectedIds.length} foto${selectedIds.length > 1 ? 's' : ''}` : 'Usar esta foto'}
+        </Button>
+        <Button
+          mode="outlined"
+          onPress={handleBack}
+          contentStyle={{ height: 48 }}
+        >
+          Volver
         </Button>
       </Footer>
     </Container>
@@ -163,6 +243,11 @@ const CheckBadge = styled.View`
   justify-content: center;
 `;
 
+const GalleryActions = styled.View`
+  padding-horizontal: 16px;
+  margin-bottom: 12px;
+`;
+
 const EmptyGallery = styled.View`
   flex: 1;
   align-items: center;
@@ -180,4 +265,5 @@ const EmptyGalleryText = styled.Text`
 
 const Footer = styled.View`
   padding: 16px;
+  gap: 12px;
 `;

@@ -41,7 +41,13 @@
     "plugins": [
       "expo-router",
       "react-native-ble-plx",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "VigilIA necesita acceso a tu galería para que puedas elegir una foto de referencia."
+        }
+      ]
     ]
   }
 }

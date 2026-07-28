@@ -62,7 +62,7 @@ export default function NewContactDetailsScreen() {
             <PhotoPicker onPress={() => router.push('/contacts/new/photo')}>
               <MaterialCommunityIcons name="camera-outline" size={26} color="#6C4EF5" />
             </PhotoPicker>
-            <PhotoLabel>Tomar foto</PhotoLabel>
+            <PhotoLabel>Cargar foto</PhotoLabel>
           </>
         ) : (
           <>
