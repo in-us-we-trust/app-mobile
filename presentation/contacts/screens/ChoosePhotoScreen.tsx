@@ -13,13 +13,19 @@ type PhotoSource = 'timbre' | 'galeria';
 
 export default function ChoosePhotoScreen() {
   const router = useRouter();
-  const { selectedCaptures, setSelectedCaptures, galleryCaptures, addGalleryCaptures } =
-    usePhotoPicker();
+  const {
+    selectedCaptures,
+    setSelectedCaptures,
+    galleryCaptures,
+    addGalleryCaptures,
+    suggestedCaptures,
+  } = usePhotoPicker();
   const [source, setSource] = useState<PhotoSource>('timbre');
   const [selectedIds, setSelectedIds] = useState<string[]>(
     selectedCaptures.map((c) => c.id),
   );
   const [isLoadingGallery, setIsLoadingGallery] = useState(false);
+  const doorbellCaptures = [...suggestedCaptures, ...MOCK_DOORBELL_CAPTURES];
 
   const toggleSelection = (id: string) => {
     setSelectedIds((prev) =>
@@ -62,7 +68,7 @@ export default function ChoosePhotoScreen() {
   };
 
   const handleConfirm = () => {
-    const allCaptures = [...MOCK_DOORBELL_CAPTURES, ...galleryCaptures];
+    const allCaptures = [...doorbellCaptures, ...galleryCaptures];
     const captures = allCaptures.filter((c) => selectedIds.includes(c.id));
     if (captures.length === 0) return;
     setSelectedCaptures(captures);
@@ -89,7 +95,7 @@ export default function ChoosePhotoScreen() {
         <>
           <Subtitle>Capturas recientes de tu timbre. Elegí la que muestre mejor su rostro.</Subtitle>
           <FlatList
-            data={MOCK_DOORBELL_CAPTURES}
+            data={doorbellCaptures}
             keyExtractor={(item) => item.id}
             numColumns={3}
             contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }}

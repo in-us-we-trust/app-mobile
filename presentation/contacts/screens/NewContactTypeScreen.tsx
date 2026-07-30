@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components/native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -8,6 +8,9 @@ export type ContactType = 'notify' | 'record';
 
 export default function NewContactTypeScreen() {
     const router = useRouter();
+    // Presente cuando se llega desde el modal de sugerencia de contacto, para
+    // que la pantalla de detalles sepa que no debe limpiar las fotos precargadas.
+    const { prefill } = useLocalSearchParams<{ prefill?: string }>();
     const [type, setType] = useState<ContactType>('notify');
 
     return (
@@ -54,7 +57,10 @@ export default function NewContactTypeScreen() {
             <Footer>
                 <Button
                     mode="contained"
-                    onPress={() => router.push({ pathname: '/contacts/new/details', params: { type } })}
+                    onPress={() => router.push({
+                        pathname: '/contacts/new/details',
+                        params: prefill === '1' ? { type, prefill } : { type },
+                    })}
                     contentStyle={{ height: 48 }}
                 >
                     Continuar

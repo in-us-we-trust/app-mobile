@@ -26,3 +26,12 @@ export type DoorbellCapture = {
     label: string;
     imageUri: string;
 };
+
+export type SuggestedContact = {
+    id: string;
+    badgeLabel: string;
+    subtitle: string;
+    /** Capturas del timbre asociadas a la persona detectada. La primera se
+     * usa como "captura principal" en el modal de sugerencia. */
+    captures: DoorbellCapture[];
+};

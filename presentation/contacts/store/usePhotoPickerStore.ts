@@ -10,7 +10,18 @@ type PhotoPickerState = {
    * cada vez que se navega hacia y desde ChoosePhotoScreen. */
   galleryCaptures: DoorbellCapture[];
   addGalleryCaptures: (captures: DoorbellCapture[]) => void;
+  /** Capturas del timbre provistas por el backend fuera del mock estático
+   * (ej. las de una sugerencia de contacto aceptada). Son de origen "timbre",
+   * no "galería", así que se muestran junto a MOCK_DOORBELL_CAPTURES y no en
+   * la pestaña de galería. */
+  suggestedCaptures: DoorbellCapture[];
+  addSuggestedCaptures: (captures: DoorbellCapture[]) => void;
   clearSelection: () => void;
+};
+
+const mergeCaptures = (current: DoorbellCapture[], incoming: DoorbellCapture[]) => {
+  const existingIds = new Set(current.map((c) => c.id));
+  return [...current, ...incoming.filter((c) => !existingIds.has(c.id))];
 };
 
 export const usePhotoPickerStore = create<PhotoPickerState>((set) => ({
@@ -18,14 +29,9 @@ export const usePhotoPickerStore = create<PhotoPickerState>((set) => ({
   setSelectedCaptures: (captures) => set({ selectedCaptures: captures }),
   galleryCaptures: [],
   addGalleryCaptures: (captures) =>
-    set((state) => {
-      const existingIds = new Set(state.galleryCaptures.map((c) => c.id));
-      return {
-        galleryCaptures: [
-          ...state.galleryCaptures,
-          ...captures.filter((c) => !existingIds.has(c.id)),
-        ],
-      };
-    }),
-  clearSelection: () => set({ selectedCaptures: [], galleryCaptures: [] }),
+    set((state) => ({ galleryCaptures: mergeCaptures(state.galleryCaptures, captures) })),
+  suggestedCaptures: [],
+  addSuggestedCaptures: (captures) =>
+    set((state) => ({ suggestedCaptures: mergeCaptures(state.suggestedCaptures, captures) })),
+  clearSelection: () => set({ selectedCaptures: [], galleryCaptures: [], suggestedCaptures: [] }),
 }));

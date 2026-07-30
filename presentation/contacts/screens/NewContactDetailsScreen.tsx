@@ -10,7 +10,7 @@ import { usePhotoPicker } from '../hooks/usePhotoPicker';
 
 export default function NewContactDetailsScreen() {
   const router = useRouter();
-  const { type } = useLocalSearchParams<{ type: ContactType }>();
+  const { type, prefill } = useLocalSearchParams<{ type: ContactType; prefill?: string }>();
   const isNotify = type === 'notify';
   const { addContactos, isSubmitting } = useContacts();
   const { selectedCaptures, clearSelection } = usePhotoPicker();
@@ -22,9 +22,13 @@ export default function NewContactDetailsScreen() {
   const [notify, setNotify] = useState(true);
 
   // Arranque limpio de un intento nuevo de alta (cubre re-entradas tras
-  // cancelar o tras haber elegido una foto en un intento anterior).
+  // cancelar o tras haber elegido una foto en un intento anterior). Se omite
+  // cuando se llega desde el modal de "sugerencia de contacto", que precarga
+  // las fotos detectadas antes de navegar hasta acá.
   useEffect(() => {
-    clearSelection();
+    if (prefill !== '1') {
+      clearSelection();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
