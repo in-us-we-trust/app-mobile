@@ -7,6 +7,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ContactType } from './NewContactTypeScreen';
 import { useContacts } from '../hooks/useContacts';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
+import { imageUriToBase64 } from '@/helpers/image.helper';
 
 export default function NewContactDetailsScreen() {
   const router = useRouter();
@@ -20,6 +21,7 @@ export default function NewContactDetailsScreen() {
   const [role, setRole] = useState('');
   const [email, setEmail] = useState('');
   const [notify, setNotify] = useState(true);
+  const [isPreparingImages, setIsPreparingImages] = useState(false);
 
   // Arranque limpio de un intento nuevo de alta (cubre re-entradas tras
   // cancelar o tras haber elegido una foto en un intento anterior). Se omite
@@ -34,8 +36,12 @@ export default function NewContactDetailsScreen() {
 
   const handleSave = async () => {
     try {
-      // TODO: reemplazar por las fotos reales una vez que se implemente la
-      // captura (el backend requiere al menos 3 imágenes en base64).
+      setIsPreparingImages(true);
+      const images = await Promise.all(
+        selectedCaptures.map((capture) => imageUriToBase64(capture.imageUri)),
+      );
+      setIsPreparingImages(false);
+
       await addContactos({
         name,
         lastName,
@@ -43,7 +49,7 @@ export default function NewContactDetailsScreen() {
         email: isNotify ? email : undefined,
         notify: isNotify ? notify : false,
         type: isNotify ? 'cercano' : 'conocido',
-        images: [],
+        images,
       });
       clearSelection();
       router.push({
@@ -51,6 +57,7 @@ export default function NewContactDetailsScreen() {
         params: { name, type, hasPhoto: selectedCaptures.length > 0 ? '1' : '0' },
       });
     } catch (error) {
+      setIsPreparingImages(false);
       Alert.alert('Error', 'No se pudo agregar el contacto. Intentalo de nuevo.');
     }
   };
@@ -63,7 +70,7 @@ export default function NewContactDetailsScreen() {
       >
         {selectedCaptures.length === 0 ? (
           <>
-            <PhotoPicker onPress={() => router.push('/contacts/new/photo')}>
+            <PhotoPicker onPress={() => router.push({ pathname: '/contacts/new/photo', params: prefill === '1' ? { prefill } : {} })}>
               <MaterialCommunityIcons name="camera-outline" size={26} color="#6C4EF5" />
             </PhotoPicker>
             <PhotoLabel>Cargar foto</PhotoLabel>
@@ -81,9 +88,11 @@ export default function NewContactDetailsScreen() {
                 contentContainerStyle={{ gap: 10, paddingVertical: 8 }}
                 style={{ width: '100%', marginTop: 4 }}
               >
-                <AddPhotoTile onPress={() => router.push('/contacts/new/photo')}>
-                  <MaterialCommunityIcons name="plus" size={24} color="#6C4EF5" />
-                </AddPhotoTile>
+                {prefill !== '1' && (
+                  <AddPhotoTile onPress={() => router.push('/contacts/new/photo')}>
+                    <MaterialCommunityIcons name="plus" size={24} color="#6C4EF5" />
+                  </AddPhotoTile>
+                )}
                 {selectedCaptures.map((capture) => (
                   <PhotoTile key={capture.id}>
                     <PhotoTileImage source={{ uri: capture.imageUri }} />
@@ -106,18 +115,14 @@ export default function NewContactDetailsScreen() {
             onChangeText={setName}
             style={{ backgroundColor: '#fff' }}
           />
-          {!isNotify && (
-            <>
-              <FieldLabel>Apellido</FieldLabel>
-              <TextInput
-                mode="outlined"
-                placeholder="Ej. Ríos"
-                value={lastName}
-                onChangeText={setLastName}
-                style={{ backgroundColor: '#fff', marginBottom: 4 }}
-              />
-            </>
-          )}
+          <FieldLabel>Apellido</FieldLabel>
+          <TextInput
+            mode="outlined"
+            placeholder="Ej. Ríos"
+            value={lastName}
+            onChangeText={setLastName}
+            style={{ backgroundColor: '#fff', marginBottom: 4 }}
+          />
 
           <FieldLabel>Relación / Rol</FieldLabel>
           <TextInput
@@ -158,8 +163,8 @@ export default function NewContactDetailsScreen() {
             mode="contained"
             onPress={handleSave}
             contentStyle={{ height: 48 }}
-            loading={isSubmitting}
-            disabled={isSubmitting}
+            loading={isSubmitting || isPreparingImages}
+            disabled={isSubmitting || isPreparingImages}
           >
             Guardar contacto
           </Button>

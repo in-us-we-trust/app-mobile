@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { Alert, FlatList } from 'react-native';
 import styled from 'styled-components/native';
-import { useRouter } from 'expo-router';
-import { SegmentedButtons, Button } from 'react-native-paper';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { MOCK_DOORBELL_CAPTURES } from '../mocks/doorbellCapturesMock';
 import { DoorbellCapture } from '../types';
 
-type PhotoSource = 'timbre' | 'galeria';
-
 export default function ChoosePhotoScreen() {
   const router = useRouter();
+  const { prefill } = useLocalSearchParams<{ prefill?: string }>();
+  // Cuando se llega desde una sugerencia de contacto (ver
+  // EventsScreen.handleAcceptSuggestion), solo puede usarse lo que recomienda
+  // el timbre, no fotos nuevas de la galería. En el alta normal es al revés:
+  // no se ofrecen las capturas del timbre.
+  const isSuggestionFlow = prefill === '1';
   const {
     selectedCaptures,
     setSelectedCaptures,
@@ -20,7 +24,6 @@ export default function ChoosePhotoScreen() {
     addGalleryCaptures,
     suggestedCaptures,
   } = usePhotoPicker();
-  const [source, setSource] = useState<PhotoSource>('timbre');
   const [selectedIds, setSelectedIds] = useState<string[]>(
     selectedCaptures.map((c) => c.id),
   );
@@ -81,19 +84,11 @@ export default function ChoosePhotoScreen() {
 
   return (
     <Container>
-      <SegmentedButtons
-        value={source}
-        onValueChange={(v) => setSource(v as PhotoSource)}
-        buttons={[
-          { value: 'timbre', label: 'Del timbre' },
-          { value: 'galeria', label: 'De tu galería' },
-        ]}
-        style={{ marginHorizontal: 16, marginTop: 16, marginBottom: 12 }}
-      />
-
-      {source === 'timbre' ? (
+      {isSuggestionFlow ? (
         <>
-          <Subtitle>Capturas recientes de tu timbre. Elegí la que muestre mejor su rostro.</Subtitle>
+          <Subtitle style={{ marginTop: 16 }}>
+            Capturas recientes de tu timbre. Elegí la que muestre mejor su rostro.
+          </Subtitle>
           <FlatList
             data={doorbellCaptures}
             keyExtractor={(item) => item.id}
@@ -111,7 +106,7 @@ export default function ChoosePhotoScreen() {
         </>
       ) : (
         <>
-          <GalleryActions>
+          <GalleryActions style={{ marginTop: 16 }}>
             <Button
               mode="outlined"
               icon="image-multiple-outline"

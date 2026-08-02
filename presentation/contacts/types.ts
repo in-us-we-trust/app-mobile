@@ -5,6 +5,9 @@ export type RecognitionStatus = 'active' | 'missing_photo' | 'pending';
 export type Contact = {
     id: string;
     name: string;
+    /** Nombre y apellido por separado, para prellenar el form de edición */
+    firstName: string;
+    lastName: string;
     relation: string;
     /** null para "conocidos" que no tienen orden de prioridad de aviso */
     priority: number | null;
@@ -13,6 +16,10 @@ export type Contact = {
     notify: boolean;
     recognitionStatus: RecognitionStatus;
     photoUri?: string | null;
+    /** Todas las fotos de referencia del contacto (la primera es photoUri) */
+    photos: string[];
+    email?: string | null;
+    cellphone?: string | null;
     createdAt: string;
 };
 

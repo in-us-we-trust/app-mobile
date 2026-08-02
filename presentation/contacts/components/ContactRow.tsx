@@ -29,7 +29,11 @@ export function ContactRow({ contact, onPress }: ContactRowProps) {
 
     return (
         <RowCard onPress={onPress}>
-            <Avatar.Text size={48} label={initials} style={{ backgroundColor: getAvatarColor(contact.id) }} />
+            {contact.photoUri ? (
+                <Avatar.Image size={48} source={{ uri: contact.photoUri }} />
+            ) : (
+                <Avatar.Text size={48} label={initials} style={{ backgroundColor: getAvatarColor(contact.id) }} />
+            )}
             <RowContent>
                 <Text variant="titleMedium" style={{ fontWeight: '600' }}>
                     {contact.name}

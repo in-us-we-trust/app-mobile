@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FlatList } from 'react-native';
-import { SegmentedButtons } from 'react-native-paper';
+import { ActivityIndicator, SegmentedButtons, useTheme } from 'react-native-paper';
 import styled from 'styled-components/native';
 import { useRouter } from 'expo-router';
 import { useContacts } from '../hooks/useContacts';
@@ -11,10 +11,21 @@ import { EmptyFilterState } from '../components/EmptyFilterState';
 
 export default function ContactsScreen() {
     const router = useRouter();
+    const theme = useTheme();
     const [tab, setTab] = useState<'cercanos' | 'conocidos'>('cercanos');
     const { contacts: allContacts, cercanos, conocidos, isLoading, refresh } = useContacts();
 
     const list = tab === 'cercanos' ? cercanos : conocidos;
+
+    // Carga inicial (todavía sin contactos): loader centrado en vez del
+    // EmptyState, que es para cuando ya se sabe que no hay ninguno.
+    if (isLoading && allContacts.length === 0) {
+        return (
+            <CenteredContainer>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
+            </CenteredContainer>
+        );
+    }
 
     return (
         <Container>
@@ -63,5 +74,12 @@ export default function ContactsScreen() {
 
 const Container = styled.View`
   flex: 1;
+  background-color: #fff;
+`;
+
+const CenteredContainer = styled.View`
+  flex: 1;
+  justify-content: center;
+  align-items: center;
   background-color: #fff;
 `;

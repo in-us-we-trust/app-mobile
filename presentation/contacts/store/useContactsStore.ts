@@ -1,23 +1,45 @@
 import { create } from 'zustand';
 import { Contact, ContactType, CreateContactInput, RecognitionStatus } from '../types';
-import { MOCK_CONTACTS } from '../mocks/contactsMocks';
 import {
-  addDevicePersonAction,
-  DeviceContact,
-  getDeviceContactsAction,
+  addContactImages as addContactImagesAction,
+  addContacts,
+  getContact,
+  getContacts,
+  Person,
+  updateContact as updateContactAction,
 } from '@/core/contacts/actions/contacts-actions';
 
-const mapDeviceContactToContact = (deviceContact: DeviceContact): Contact => ({
-  id: deviceContact.contactId,
-  name: `${deviceContact.name} ${deviceContact.lastName}`.trim(),
-  relation: deviceContact.email,
-  priority: null,
-  type: 'conocido',
-  notify: false,
-  recognitionStatus: 'active',
-  photoUri: null,
-  createdAt: '',
-});
+const mapPersonToContact = (person: Person): Contact => {
+  // Si el nodo "contact" viene null, es un contacto "solo a registrar"
+  // (conocido); si viene con datos, es un "cercano" a notificar.
+  const type: ContactType = person.contact ? 'cercano' : 'conocido';
+  const photos = person.images.map((image) => image.imageUrl);
+
+  return {
+    id: person.id,
+    name: `${person.firstName} ${person.lastName}`.trim(),
+    firstName: person.firstName,
+    lastName: person.lastName,
+    relation: person.role,
+    priority: null,
+    type,
+    notify: type === 'cercano',
+    recognitionStatus: photos.length > 0 ? 'active' : 'missing_photo',
+    photoUri: photos[0] ?? null,
+    photos,
+    email: person.contact?.email ?? null,
+    cellphone: person.contact?.cellphone ?? null,
+    createdAt: '',
+  };
+};
+
+type UpdateContactInput = {
+  firstName: string;
+  lastName: string;
+  role: string;
+  email?: string | null;
+  cellphone?: string | null;
+};
 
 type AddContactoInput = {
   name: string;
@@ -28,8 +50,7 @@ type AddContactoInput = {
   notify: boolean;
   type: ContactType;
   // Imágenes en base64 (sin el prefijo data:image/...). El backend requiere
-  // al menos 3; hasta que la pantalla implemente la captura real de fotos
-  // esto llega vacío y el alta falla en el backend.
+  // al menos 3.
   images: string[];
 };
 
@@ -39,35 +60,54 @@ type ContactsState = {
   isSubmitting: boolean;
   error: string | null;
 
+  // Contacto individual mostrado en el detalle, traído directo de
+  // /me/device/persons/{id} en vez de buscarse en `contacts`.
+  selectedContact: Contact | null;
+  isLoadingSelectedContact: boolean;
+
   // queries / fetch
   fetchContacts: () => Promise<void>;
+  fetchContact: (id: string) => Promise<void>;
 
   // mutations
   addContact: (input: CreateContactInput) => void;
   addContactos: (input: AddContactoInput) => Promise<void>;
+  addContactImages: (id: string, images: string[]) => Promise<void>;
+  updateContact: (id: string, input: UpdateContactInput) => Promise<void>;
   removeContact: (id: string) => void;
   toggleNotify: (id: string) => void;
   updatePriority: (id: string, priority: number | null) => void;
   setRecognitionStatus: (id: string, status: RecognitionStatus) => void;
 };
 
-export const useContactsStore = create<ContactsState>((set) => ({
+export const useContactsStore = create<ContactsState>((set, get) => ({
   contacts: [],
   isLoading: false,
   isSubmitting: false,
   error: null,
+  selectedContact: null,
+  isLoadingSelectedContact: false,
 
   fetchContacts: async () => {
     set({ isLoading: true, error: null });
     try {
-      const deviceContacts = await getDeviceContactsAction();
-      const conocidos = deviceContacts.map(mapDeviceContactToContact);
-      // TODO: reemplazar por el endpoint real de "cercanos" cuando esté disponible
-      const cercanos = MOCK_CONTACTS.filter((c) => c.type === 'cercano');
-      set({ contacts: [...cercanos, ...conocidos], isLoading: false });
+      const persons = await getContacts();
+      const contacts = persons.map(mapPersonToContact);
+      set({ contacts, isLoading: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudieron cargar los contactos';
       set({ error: message, isLoading: false });
+    }
+  },
+
+  fetchContact: async (id) => {
+    set({ isLoadingSelectedContact: true, error: null });
+    try {
+      const person = await getContact(id);
+      set({ selectedContact: mapPersonToContact(person), isLoadingSelectedContact: false });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudo cargar el contacto';
+      set({ selectedContact: null, error: message, isLoadingSelectedContact: false });
     }
   },
 
@@ -84,30 +124,39 @@ export const useContactsStore = create<ContactsState>((set) => ({
   addContactos: async (input) => {
     set({ isSubmitting: true, error: null });
     try {
-      await addDevicePersonAction({
+      await addContacts({
         firstName: input.name,
         lastName: input.lastName,
         role: input.role || undefined,
         images: input.images,
-        contact: {
-          email: input.email,
-          // No existe (todavía) un endpoint para resolver el userId de un
-          // usuario existente a partir de su email.
-          userId: null,
-        },
+        // Los contactos "solo a registrar" (conocidos) no están vinculados a
+        // un usuario de la app, así que se manda el nodo completo en null.
+        contact: input.type === 'cercano'
+          ? {
+              email: input.email,
+              // No existe (todavía) un endpoint para resolver el userId de un
+              // usuario existente a partir de su email.
+              userId: null,
+            }
+          : null,
       });
 
-      // No hay endpoint de lectura para "personas" todavía, así que se agrega
-      // localmente en vez de refetchear.
+      // Se agrega localmente en vez de refetchear para no esperar un round-trip
+      // extra; el próximo fetchContacts ya trae el contacto real del backend.
       const newContact: Contact = {
         id: Date.now().toString(),
         name: `${input.name} ${input.lastName}`.trim(),
+        firstName: input.name,
+        lastName: input.lastName,
         relation: input.role,
         priority: null,
         type: input.type,
         notify: input.notify,
         recognitionStatus: input.images.length > 0 ? 'pending' : 'missing_photo',
         photoUri: null,
+        photos: [],
+        email: input.type === 'cercano' ? input.email ?? null : null,
+        cellphone: null,
         createdAt: new Date().toISOString(),
       };
       set((state) => ({ contacts: [...state.contacts, newContact], isSubmitting: false }));
@@ -118,13 +167,62 @@ export const useContactsStore = create<ContactsState>((set) => ({
     }
   },
 
+  addContactImages: async (id, images) => {
+    set({ isSubmitting: true, error: null });
+    try {
+      await addContactImagesAction(id, images);
+      // Se refetchea el detalle (en vez de agregar localmente) porque el
+      // backend devuelve la URL real de cada imagen subida, que acá no tenemos.
+      await get().fetchContact(id);
+      set({ isSubmitting: false });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudieron agregar las fotos';
+      set({ error: message, isSubmitting: false });
+      throw err;
+    }
+  },
+
+  updateContact: async (id, input) => {
+    set({ isSubmitting: true, error: null });
+    try {
+      const hasContactInfo = !!input.email || !!input.cellphone;
+      await updateContactAction(id, {
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: input.role || undefined,
+        // Mismo criterio que en el alta: si no hay email ni teléfono, se manda
+        // el nodo completo en null (contacto "solo a registrar").
+        contact: hasContactInfo
+          ? {
+              email: input.email ?? undefined,
+              cellphone: input.cellphone ?? undefined,
+              userId: null,
+            }
+          : null,
+      });
+      await get().fetchContact(id);
+      set({ isSubmitting: false });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'No se pudieron guardar los cambios';
+      set({ error: message, isSubmitting: false });
+      throw err;
+    }
+  },
+
   removeContact: (id) => {
     set((state) => ({ contacts: state.contacts.filter((c) => c.id !== id) }));
   },
 
   toggleNotify: (id) => {
+    // "notify" no está persistido en el backend (el PATCH no tiene campo para
+    // esto), así que solo se actualiza en memoria: la lista y, si corresponde,
+    // el contacto del detalle.
     set((state) => ({
       contacts: state.contacts.map((c) => (c.id === id ? { ...c, notify: !c.notify } : c)),
+      selectedContact:
+        state.selectedContact?.id === id
+          ? { ...state.selectedContact, notify: !state.selectedContact.notify }
+          : state.selectedContact,
     }));
   },
 
