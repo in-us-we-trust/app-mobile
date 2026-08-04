@@ -22,10 +22,11 @@ function initialsForName(name: string) {
 
 export default function NewContactConfirmationScreen() {
     const router = useRouter();
-    const { name, type, hasPhoto } = useLocalSearchParams<{
+    const { name, type, photoUri, contactId } = useLocalSearchParams<{
         name: string;
         type: ContactType;
-        hasPhoto: string;
+        photoUri?: string;
+        contactId?: string;
     }>();
 
     const isNotify = type === 'notify';
@@ -33,14 +34,22 @@ export default function NewContactConfirmationScreen() {
 
     const handleDone = () => router.navigate('/contacts');
     const handleAddAnother = () => router.replace('/contacts/new');
+    // Sin id (el backend no lo devolvió) se cae a la lista, que es desde donde
+    // igual se puede abrir el detalle.
+    const handleViewContact = () =>
+        contactId ? router.replace(`/contacts/${contactId}`) : router.navigate('/contacts');
 
     return (
         <Container>
             <Content>
                 <AvatarWrapper>
-                    <Avatar color={colorForName(displayName)}>
-                        <AvatarText>{initialsForName(displayName)}</AvatarText>
-                    </Avatar>
+                    {photoUri ? (
+                        <AvatarImage source={{ uri: photoUri }} />
+                    ) : (
+                        <Avatar color={colorForName(displayName)}>
+                            <AvatarText>{initialsForName(displayName)}</AvatarText>
+                        </Avatar>
+                    )}
                     <CheckBadge>
                         <MaterialCommunityIcons name="check" size={16} color="#fff" />
                     </CheckBadge>
@@ -92,7 +101,7 @@ export default function NewContactConfirmationScreen() {
                 <Button mode="contained" onPress={handleDone} contentStyle={{ height: 48 }}>
                     Listo
                 </Button>
-                <Button icon="eye-outline" mode="outlined" onPress={handleDone} contentStyle={{ height: 48 }}>
+                <Button icon="eye-outline" mode="outlined" onPress={handleViewContact} contentStyle={{ height: 48 }}>
                     Ver contacto
                 </Button>
                 <Button
@@ -133,6 +142,13 @@ const Avatar = styled.View<{ color: string }>`
   background-color: ${({ color }) => color};
   align-items: center;
   justify-content: center;
+`;
+
+const AvatarImage = styled.Image`
+  width: 92px;
+  height: 92px;
+  border-radius: 46px;
+  background-color: #f0f0f0;
 `;
 
 const AvatarText = styled.Text`

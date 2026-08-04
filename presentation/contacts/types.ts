@@ -23,10 +23,6 @@ export type Contact = {
     createdAt: string;
 };
 
-export type CreateContactInput = Omit<Contact, 'id' | 'createdAt' | 'recognitionStatus'> & {
-    recognitionStatus?: RecognitionStatus;
-};
-
 export type DoorbellCapture = {
     id: string;
     /** ej. "08:12" o "Ayer 19:04" — ya viene formateado, no hay Date real detrás */

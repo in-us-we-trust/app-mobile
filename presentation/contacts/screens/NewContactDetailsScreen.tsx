@@ -13,7 +13,7 @@ export default function NewContactDetailsScreen() {
   const router = useRouter();
   const { type, prefill } = useLocalSearchParams<{ type: ContactType; prefill?: string }>();
   const isNotify = type === 'notify';
-  const { addContactos, isSubmitting } = useContacts();
+  const { addContact, isSubmitting } = useContacts();
   const { selectedCaptures, clearSelection } = usePhotoPicker();
 
   const [name, setName] = useState('');
@@ -42,7 +42,7 @@ export default function NewContactDetailsScreen() {
       );
       setIsPreparingImages(false);
 
-      await addContactos({
+      const contactId = await addContact({
         name,
         lastName,
         role,
@@ -51,10 +51,14 @@ export default function NewContactDetailsScreen() {
         type: isNotify ? 'cercano' : 'conocido',
         images,
       });
+
+      // Se guarda antes de limpiar la selección: la confirmación muestra esta
+      // foto como avatar (la URL real del backend todavía no la tenemos).
+      const photoUri = selectedCaptures[0]?.imageUri ?? '';
       clearSelection();
       router.push({
         pathname: '/contacts/new/confirmation',
-        params: { name, type, hasPhoto: selectedCaptures.length > 0 ? '1' : '0' },
+        params: { name, type, photoUri, contactId },
       });
     } catch (error) {
       setIsPreparingImages(false);

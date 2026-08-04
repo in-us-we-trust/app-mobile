@@ -1,29 +1,52 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { FlatList } from 'react-native';
 import { ActivityIndicator, SegmentedButtons, useTheme } from 'react-native-paper';
 import styled from 'styled-components/native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useContacts } from '../hooks/useContacts';
+import { useDevice } from '@/presentation/device/hooks/useDevice';
 import { ContactRow } from '../components/ContactRow';
 import { AddContactRow } from '../components/AddContactRow';
 import { EmptyState } from '../components/EmptyState';
 import { EmptyFilterState } from '../components/EmptyFilterState';
+import { NoDeviceState } from '../components/NoDeviceState';
 
 export default function ContactsScreen() {
     const router = useRouter();
     const theme = useTheme();
     const [tab, setTab] = useState<'cercanos' | 'conocidos'>('cercanos');
     const { contacts: allContacts, cercanos, conocidos, isLoading, refresh } = useContacts();
+    const { device, isLoading: isLoadingDevice, fetchDevice } = useDevice();
+
+    // Se revalida al entrar al tab: el usuario puede vincular el timbre desde
+    // la pantalla de Dispositivo y volver acá sin remontar la app.
+    useFocusEffect(
+        useCallback(() => {
+            void fetchDevice();
+        }, [fetchDevice]),
+    );
 
     const list = tab === 'cercanos' ? cercanos : conocidos;
 
-    // Carga inicial (todavía sin contactos): loader centrado en vez del
-    // EmptyState, que es para cuando ya se sabe que no hay ninguno.
-    if (isLoading && allContacts.length === 0) {
+    // Carga inicial (todavía sin contactos ni datos del timbre): loader centrado
+    // en vez de los estados vacíos, que son para cuando ya se sabe que no hay nada.
+    if ((isLoading && allContacts.length === 0) || (isLoadingDevice && !device)) {
         return (
             <CenteredContainer>
                 <ActivityIndicator size="large" color={theme.colors.primary} />
             </CenteredContainer>
+        );
+    }
+
+    // Sin timbre vinculado no se pueden agregar contactos: el reconocimiento y
+    // las fotos dependen del dispositivo.
+    if (!device) {
+        return (
+            <Container>
+                <NoDeviceState
+                    onLink={() => router.push('/(app-name)/(tabs)/device/link-device')}
+                />
+            </Container>
         );
     }
 

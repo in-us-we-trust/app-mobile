@@ -1,8 +1,8 @@
 import { create } from 'zustand';
-import { Contact, ContactType, CreateContactInput, RecognitionStatus } from '../types';
+import { Contact, ContactType, RecognitionStatus } from '../types';
 import {
   addContactImages as addContactImagesAction,
-  addContacts,
+  createPerson,
   getContact,
   getContacts,
   Person,
@@ -41,7 +41,7 @@ type UpdateContactInput = {
   cellphone?: string | null;
 };
 
-type AddContactoInput = {
+type AddContactInput = {
   name: string;
   lastName: string;
   role: string;
@@ -70,8 +70,8 @@ type ContactsState = {
   fetchContact: (id: string) => Promise<void>;
 
   // mutations
-  addContact: (input: CreateContactInput) => void;
-  addContactos: (input: AddContactoInput) => Promise<void>;
+  /** Devuelve el id del contacto creado. */
+  addContact: (input: AddContactInput) => Promise<string>;
   addContactImages: (id: string, images: string[]) => Promise<void>;
   updateContact: (id: string, input: UpdateContactInput) => Promise<void>;
   removeContact: (id: string) => void;
@@ -111,20 +111,10 @@ export const useContactsStore = create<ContactsState>((set, get) => ({
     }
   },
 
-  addContact: (input) => {
-    const newContact: Contact = {
-      ...input,
-      id: Date.now().toString(),
-      recognitionStatus: input.recognitionStatus ?? 'pending',
-      createdAt: new Date().toISOString(),
-    };
-    set((state) => ({ contacts: [...state.contacts, newContact] }));
-  },
-
-  addContactos: async (input) => {
+  addContact: async (input) => {
     set({ isSubmitting: true, error: null });
     try {
-      await addContacts({
+      const createdPerson = await createPerson({
         firstName: input.name,
         lastName: input.lastName,
         role: input.role || undefined,
@@ -141,25 +131,11 @@ export const useContactsStore = create<ContactsState>((set, get) => ({
           : null,
       });
 
-      // Se agrega localmente en vez de refetchear para no esperar un round-trip
-      // extra; el próximo fetchContacts ya trae el contacto real del backend.
-      const newContact: Contact = {
-        id: Date.now().toString(),
-        name: `${input.name} ${input.lastName}`.trim(),
-        firstName: input.name,
-        lastName: input.lastName,
-        relation: input.role,
-        priority: null,
-        type: input.type,
-        notify: input.notify,
-        recognitionStatus: input.images.length > 0 ? 'pending' : 'missing_photo',
-        photoUri: null,
-        photos: [],
-        email: input.type === 'cercano' ? input.email ?? null : null,
-        cellphone: null,
-        createdAt: new Date().toISOString(),
-      };
+      // El POST devuelve la persona creada (con id e imágenes reales), así que
+      // se agrega localmente en vez de refetchear.
+      const newContact = mapPersonToContact(createdPerson);
       set((state) => ({ contacts: [...state.contacts, newContact], isSubmitting: false }));
+      return newContact.id;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo agregar el contacto';
       set({ error: message, isSubmitting: false });

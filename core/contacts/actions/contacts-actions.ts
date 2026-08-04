@@ -24,7 +24,7 @@ export interface Person {
     contact: PersonContact | null;
 }
 
-export interface AddContactPayload {
+export interface CreatePersonPayload {
     firstName: string;
     lastName: string;
     role?: string;
@@ -71,9 +71,11 @@ export const getContact = async (personId: string): Promise<Person> => {
     }
 };
 
-export const addContacts = async (payload: AddContactPayload): Promise<void> => {
+/** Devuelve la persona creada, con su id y las URLs reales de las imágenes. */
+export const createPerson = async (payload: CreatePersonPayload): Promise<Person> => {
     try {
-        await httpClient.post(CONTACTS_ENDPOINT, payload);
+        const response = await httpClient.post<GetContactResponse>(CONTACTS_ENDPOINT, payload);
+        return response.data.data;
     } catch (error) {
         throw new Error(handleApiError(error));
     }
