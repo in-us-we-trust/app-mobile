@@ -9,6 +9,9 @@ import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { MOCK_DOORBELL_CAPTURES } from '../mocks/doorbellCapturesMock';
 import { DoorbellCapture } from '../types';
 
+/** Mismo mínimo que exige el alta (y el backend) para poder reconocer a la persona. */
+const MIN_PHOTOS = 3;
+
 export default function ChoosePhotoScreen() {
   const router = useRouter();
   const { prefill } = useLocalSearchParams<{ prefill?: string }>();
@@ -143,13 +146,20 @@ export default function ChoosePhotoScreen() {
       )}
 
       <Footer>
+        {/* Solo informativo: el mínimo lo valida el form del alta, acá se puede
+            confirmar con menos e ir sumando fotos en varias pasadas. */}
+        {selectedIds.length < MIN_PHOTOS && (
+          <SelectionHint>
+            {`Se necesitan al menos ${MIN_PHOTOS} fotos (llevás ${selectedIds.length}).`}
+          </SelectionHint>
+        )}
         <Button
           mode="contained"
           onPress={handleConfirm}
           disabled={selectedIds.length === 0}
           contentStyle={{ height: 48 }}
         >
-          {selectedIds.length > 0 ? `Usar ${selectedIds.length} foto${selectedIds.length > 1 ? 's' : ''}` : 'Usar esta foto'}
+          {selectedIds.length > 0 ? `Usar ${selectedIds.length} foto${selectedIds.length > 1 ? 's' : ''}` : 'Usar estas fotos'}
         </Button>
         <Button
           mode="outlined"
@@ -267,4 +277,10 @@ const EmptyGalleryText = styled.Text`
 const Footer = styled.View`
   padding: 16px;
   gap: 12px;
+`;
+
+const SelectionHint = styled.Text`
+  font-size: 12px;
+  color: #999;
+  text-align: center;
 `;

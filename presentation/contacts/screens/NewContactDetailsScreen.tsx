@@ -2,12 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import styled from 'styled-components/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { TextInput, Switch, Button } from 'react-native-paper';
+import { TextInput, Switch, Button, HelperText } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ContactType } from './NewContactTypeScreen';
 import { useContacts } from '../hooks/useContacts';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { imageUriToBase64 } from '@/helpers/image.helper';
+
+/** El backend rechaza el alta con menos de 3 imágenes de referencia. */
+const MIN_PHOTOS = 3;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type FormErrors = {
+  photos?: string;
+  name?: string;
+  lastName?: string;
+  role?: string;
+  email?: string;
+};
 
 export default function NewContactDetailsScreen() {
   const router = useRouter();
@@ -22,6 +35,12 @@ export default function NewContactDetailsScreen() {
   const [email, setEmail] = useState('');
   const [notify, setNotify] = useState(true);
   const [isPreparingImages, setIsPreparingImages] = useState(false);
+  // Los errores se muestran recién al intentar guardar, y el de un campo se
+  // borra apenas se lo edita: si sigue mal, vuelve en el próximo "Guardar".
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  const clearError = (field: keyof FormErrors) =>
+    setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
 
   // Arranque limpio de un intento nuevo de alta (cubre re-entradas tras
   // cancelar o tras haber elegido una foto en un intento anterior). Se omite
@@ -34,7 +53,35 @@ export default function NewContactDetailsScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const validate = (): FormErrors => {
+    const nextErrors: FormErrors = {};
+
+    if (selectedCaptures.length < MIN_PHOTOS) {
+      nextErrors.photos = `Subí al menos ${MIN_PHOTOS} fotos (llevás ${selectedCaptures.length}).`;
+    }
+    if (!name.trim()) nextErrors.name = 'Ingresá el nombre.';
+    if (!lastName.trim()) nextErrors.lastName = 'Ingresá el apellido.';
+    if (!role.trim()) nextErrors.role = 'Ingresá la relación o rol.';
+    if (isNotify) {
+      if (!email.trim()) nextErrors.email = 'Ingresá el email.';
+      else if (!EMAIL_REGEX.test(email.trim())) nextErrors.email = 'Ingresá un email válido.';
+    }
+
+    return nextErrors;
+  };
+
+  // Mismo criterio que en los campos de texto: al cambiar la selección de fotos
+  // se limpia el error, aunque todavía no llegue al mínimo.
+  useEffect(() => {
+    clearError('photos');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCaptures.length]);
+
   const handleSave = async () => {
+    const nextErrors = validate();
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     try {
       setIsPreparingImages(true);
       const images = await Promise.all(
@@ -43,10 +90,10 @@ export default function NewContactDetailsScreen() {
       setIsPreparingImages(false);
 
       const contactId = await addContact({
-        name,
-        lastName,
-        role,
-        email: isNotify ? email : undefined,
+        name: name.trim(),
+        lastName: lastName.trim(),
+        role: role.trim(),
+        email: isNotify ? email.trim() : undefined,
         notify: isNotify ? notify : false,
         type: isNotify ? 'cercano' : 'conocido',
         images,
@@ -58,7 +105,7 @@ export default function NewContactDetailsScreen() {
       clearSelection();
       router.push({
         pathname: '/contacts/new/confirmation',
-        params: { name, type, photoUri, contactId },
+        params: { name: name.trim(), type, photoUri, contactId },
       });
     } catch (error) {
       setIsPreparingImages(false);
@@ -106,7 +153,11 @@ export default function NewContactDetailsScreen() {
             </View>
           </>
         )}
-        <PhotoHint>La IA usa estas foto para reconocer a la persona en la puerta.</PhotoHint>
+        <PhotoHint>
+          La IA usa estas fotos para reconocer a la persona en la puerta. Necesita
+          al menos {MIN_PHOTOS}.
+        </PhotoHint>
+        {!!errors.photos && <PhotoError>{errors.photos}</PhotoError>}
 
         {/* width: 100% explícito acá evita que el TextInput, al no tener
                     tamaño propio, herede el flex: 1 del contenedor y se estire. */}
@@ -116,26 +167,43 @@ export default function NewContactDetailsScreen() {
             mode="outlined"
             placeholder="Ej. María González"
             value={name}
-            onChangeText={setName}
+            onChangeText={(text) => {
+              setName(text);
+              clearError('name');
+            }}
+            error={!!errors.name}
             style={{ backgroundColor: '#fff' }}
           />
+          {!!errors.name && <HelperText type="error">{errors.name}</HelperText>}
+
           <FieldLabel>Apellido</FieldLabel>
           <TextInput
             mode="outlined"
             placeholder="Ej. Ríos"
             value={lastName}
-            onChangeText={setLastName}
+            onChangeText={(text) => {
+              setLastName(text);
+              clearError('lastName');
+            }}
+            error={!!errors.lastName}
             style={{ backgroundColor: '#fff', marginBottom: 4 }}
           />
+          {!!errors.lastName && <HelperText type="error">{errors.lastName}</HelperText>}
 
           <FieldLabel>Relación / Rol</FieldLabel>
           <TextInput
             mode="outlined"
             placeholder="Ej. Hija, Vecino, Encargada"
             value={role}
-            onChangeText={setRole}
+            onChangeText={(text) => {
+              setRole(text);
+              clearError('role');
+            }}
+            error={!!errors.role}
             style={{ backgroundColor: '#fff', marginBottom: 4 }}
           />
+          {!!errors.role && <HelperText type="error">{errors.role}</HelperText>}
+
           {isNotify && (
             <>
               <FieldLabel>Email</FieldLabel>
@@ -143,11 +211,16 @@ export default function NewContactDetailsScreen() {
                 mode="outlined"
                 placeholder="ejemplo@mail.com"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  clearError('email');
+                }}
                 autoCapitalize="none"
                 keyboardType="email-address"
+                error={!!errors.email}
                 style={{ backgroundColor: '#fff' }}
               />
+              {!!errors.email && <HelperText type="error">{errors.email}</HelperText>}
             </>
           )}
 
@@ -234,6 +307,15 @@ const PhotoLabel = styled.Text`
   font-weight: 600;
   color: #6C4EF5;
   margin-top: 8px;
+`;
+
+const PhotoError = styled.Text`
+  font-size: 12px;
+  color: #b3261e;
+  text-align: center;
+  margin-top: -12px;
+  margin-bottom: 16px;
+  padding-horizontal: 24px;
 `;
 
 const PhotoHint = styled.Text`
