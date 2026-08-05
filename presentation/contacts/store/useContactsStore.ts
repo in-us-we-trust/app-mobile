@@ -176,7 +176,10 @@ export const useContactsStore = create<ContactsState>((set, get) => ({
             }
           : null,
       });
-      await get().fetchContact(id);
+      // Se refetchea también la lista porque agregar (o quitar) datos de
+      // contacto cambia el tipo del contacto: un "conocido" pasa a "cercano"
+      // y tiene que moverse de sección.
+      await Promise.all([get().fetchContact(id), get().fetchContacts()]);
       set({ isSubmitting: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudieron guardar los cambios';
