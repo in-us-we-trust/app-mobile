@@ -22,10 +22,15 @@ export default function TabsLayout() {
             headerShown: true,
             headerLeft: menuButton,
         }}>
+            {/* Mismo patrón que contacts/device: apunta al GRUPO (events), que tiene
+                su propio _layout con Stack, para que el detalle del evento quede
+                DENTRO de esta tab. Es un grupo y no una carpeta común para que el
+                listado siga viviendo en "/" (a donde redirige el login). */}
             <Tabs.Screen
-                name="index"
+                name="(events)"
                 options={{
                     title: 'Eventos',
+                    headerShown: false, // el header lo maneja el Stack de (events)/_layout.tsx
                     tabBarIcon: ({ color, size }) => (
                         <MaterialCommunityIcons name="calendar-clock" color={color} size={size} />
                     ),

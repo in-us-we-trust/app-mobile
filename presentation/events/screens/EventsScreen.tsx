@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, ActivityIndicator } from 'react-native';
+import { FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useTheme, Text } from 'react-native-paper';
 import styled from 'styled-components/native';
 import { useRouter } from 'expo-router';
@@ -15,13 +15,12 @@ import { SuggestedContactModal } from '@/presentation/contacts/components/Sugges
 export default function EventsScreen() {
     const theme = useTheme();
     const router = useRouter();
-    const { events, loading, error, refresh } = useEvents();
+    const { urgentEvent, events, loading, error, refresh } = useEvents();
     const { suggestion, dismissSuggestion } = useSuggestedContact();
     const { setSelectedCaptures, addSuggestedCaptures } = usePhotoPicker();
 
     const handlePress = (event: HomeEvent) => {
-        console.log('Ver evento:', event.id);
-        // router.push(`/events/${event.id}`)
+        router.push(`/event/${event.trackId}`);
     };
 
     const handleAcceptSuggestion = () => {
@@ -37,11 +36,13 @@ export default function EventsScreen() {
         router.push({ pathname: '/contacts/new', params: { prefill: '1' } });
     };
 
-    const [featured, ...rest] = events;
+    const hasContent = !!urgentEvent || events.length > 0;
 
     let content: React.ReactNode;
 
-    if (loading) {
+    // El spinner a pantalla completa es solo para la primera carga; en un refresh
+    // posterior ya hay contenido y alcanza con el RefreshControl de la lista.
+    if (loading && !hasContent) {
         content = (
             <CenteredView bg={theme.colors.background}>
                 <ActivityIndicator color={theme.colors.primary} />
@@ -56,7 +57,7 @@ export default function EventsScreen() {
                 </Text>
             </CenteredView>
         );
-    } else if (events.length === 0) {
+    } else if (!hasContent) {
         content = (
             <Container bg={theme.colors.background}>
                 <EmptyEventsState />
@@ -65,20 +66,23 @@ export default function EventsScreen() {
     } else {
         content = (
             <Container bg={theme.colors.background}>
-                {/* Evento destacado: fuera de cualquier scroll, siempre visible */}
-                {featured && <FeaturedCard event={featured} onPress={handlePress} />}
+                {/* Evento urgente: fuera de cualquier scroll, siempre visible */}
+                {urgentEvent && (
+                    <FeaturedCard event={urgentEvent} onPress={handlePress} tag="Requiere atención" />
+                )}
 
                 {/* Único scroll de la pantalla: historial como lista plana,
                     sin agrupar por fecha. */}
-                {rest.length > 0 && (
+                {events.length > 0 && (
                     <>
                         <SectionLabel color={theme.colors.onSurfaceVariant}>Historial</SectionLabel>
                         <FlatList
                             style={{ flex: 1 }}
-                            data={rest}
+                            data={events}
                             keyExtractor={(item) => item.id}
                             showsVerticalScrollIndicator={false}
                             contentContainerStyle={{ paddingBottom: 32 }}
+                            refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} />}
                             renderItem={({ item }) => <EventRow event={item} onPress={handlePress} />}
                         />
                     </>

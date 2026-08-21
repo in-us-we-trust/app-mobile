@@ -16,11 +16,13 @@ const SEVERITY_CONFIG: Record<EventSeverity, { color: string; bg: string; label:
 interface FeaturedCardProps {
   event: HomeEvent;
   onPress: (event: HomeEvent) => void;
+  /** Etiqueta de la esquina superior derecha. */
+  tag?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const FeaturedCard: React.FC<FeaturedCardProps> = ({ event, onPress }) => {
+export const FeaturedCard: React.FC<FeaturedCardProps> = ({ event, onPress, tag = 'Último evento' }) => {
   const theme = useTheme();
   const cfg = SEVERITY_CONFIG[event.severity];
 
@@ -33,7 +35,7 @@ export const FeaturedCard: React.FC<FeaturedCardProps> = ({ event, onPress }) =>
             <BadgeIcon color={cfg.color}>{cfg.icon}</BadgeIcon>
             <BadgeLabel color={cfg.color}>{cfg.label}</BadgeLabel>
           </SeverityBadge>
-          <Tag color={theme.colors.onSurfaceVariant}>Último evento</Tag>
+          <Tag color={theme.colors.onSurfaceVariant}>{tag}</Tag>
         </TopRow>
 
         <Title color={theme.colors.onBackground}>{event.title}</Title>

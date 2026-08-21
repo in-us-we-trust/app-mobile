@@ -6,7 +6,7 @@ let authToken: string | null = null;
 
 export const httpClient = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 100000,
+    timeout: 500000,
     headers: {
         "Content-Type": "application/json",
     },

@@ -40,9 +40,13 @@ function getInitials(name: string) {
   return name.split(' ').map((n) => n[0]).slice(0, 2).join('').toUpperCase();
 }
 
+/** Hash simple sobre el id (un uuid) para repartir los colores de forma estable. */
 function getAvatarColor(id: string) {
-  const idx = parseInt(id, 10) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[Number.isNaN(idx) ? 0 : idx];
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 1000000007;
+  }
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
