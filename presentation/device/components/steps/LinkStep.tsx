@@ -9,7 +9,7 @@ interface LinkStepProps {
     deviceId: string | null;
     device: Device | null;
     onNext: () => void;
-    onBack: () => void;
+    onCancel: () => void;
 }
 
 const Container = styled.View`
@@ -51,7 +51,7 @@ const StyledInput = styled(TextInput)`
   margin-bottom: 12px;
 `;
 
-export default function LinkStep({ deviceId, device, onNext, onBack }: LinkStepProps) {
+export default function LinkStep({ deviceId, device, onNext, onCancel }: LinkStepProps) {
     const theme = useTheme();
     const { status, linkDevice } = useLinkDevice();
     const [deviceName, setDeviceName] = useState('Timbre puerta principal');
@@ -122,10 +122,10 @@ export default function LinkStep({ deviceId, device, onNext, onBack }: LinkStepP
                         </Button>
                         <Button
                             mode="text"
-                            onPress={onBack}
+                            onPress={onCancel}
                             labelStyle={{ color: theme.colors.onSurfaceVariant }}
                         >
-                            Volver
+                            Cancelar
                         </Button>
                     </>
                 )}
@@ -148,10 +148,10 @@ export default function LinkStep({ deviceId, device, onNext, onBack }: LinkStepP
                         </Button>
                         <Button
                             mode="text"
-                            onPress={onBack}
+                            onPress={onCancel}
                             labelStyle={{ color: theme.colors.onSurfaceVariant }}
                         >
-                            Volver
+                            Cancelar
                         </Button>
                     </>
                 )}

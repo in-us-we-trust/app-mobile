@@ -12,7 +12,8 @@ const WIFI_RESPONSE_TIMEOUT_MS = 300000;
 
 interface ConfigureWifiStepProps {
     onNext: (deviceId: string, device: Device) => void;
-    onBack: () => void;
+    onCancel: () => void;
+    onError: (title?: string, message?: string) => void;
     device: Device | null;
 }
 
@@ -21,10 +22,34 @@ type WifiResponsePayload = {
     macAddress?: string;
     mac_address?: string;
     device_id?: string;
+    error?: string;
 };
 
-const extractDeviceId = (decodedPayload: string): string | null => {
+// Errores conocidos que puede reportar el ESP32 en la respuesta BLE ({"error": "<code>"}).
+const DEVICE_ERRORS: Record<string, { title: string; message: string }> = {
+    wifi_failed: {
+        title: 'No se pudo conectar al WiFi',
+        message: 'El timbre no pudo conectarse a la red. Revisá el nombre de la red y la contraseña e intentalo de nuevo.',
+    },
+};
+
+class DeviceResponseError extends Error {
+    constructor(public readonly code: string) {
+        super(`El dispositivo respondió con error: ${code}`);
+    }
+}
+
+const parseWifiResponse = (decodedPayload: string): WifiResponsePayload => {
     const parsed = JSON.parse(decodedPayload) as WifiResponsePayload;
+
+    if (typeof parsed?.error === 'string' && parsed.error.trim().length > 0) {
+        throw new DeviceResponseError(parsed.error.trim());
+    }
+
+    return parsed;
+};
+
+const extractDeviceId = (parsed: WifiResponsePayload): string | null => {
     const candidate = parsed.deviceId ?? parsed.macAddress ?? parsed.mac_address ?? parsed.device_id;
 
     if (typeof candidate !== 'string') {
@@ -74,7 +99,7 @@ const StyledInput = styled(TextInput)`
   margin-bottom: 12px;
 `;
 
-export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureWifiStepProps) {
+export default function ConfigureWifiStep({ onNext, onCancel, onError, device }: ConfigureWifiStepProps) {
     const theme = useTheme();
     const [ssid, setSsid] = useState('');
     const [password, setPassword] = useState('');
@@ -111,6 +136,7 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
 
     const handleContinue = async () => {
         if (!device) {
+            onError('Dispositivo desconectado', 'Perdimos la conexión con el timbre. Volvé a escanear el QR.');
             return;
         }
 
@@ -122,9 +148,7 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
             console.log('¿Conectado?', isConnected);
 
             if (!isConnected) {
-                console.error('Dispositivo desconectado');
-                setIsSending(false);
-                return;
+                throw new Error('Dispositivo desconectado');
             }
 
             const payload = JSON.stringify({ ssid, password });
@@ -176,7 +200,7 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
 
             // 3. Parsear deviceId/macAddress y pasar al siguiente step junto con el device activo
             const decoded = await responsePromise;
-            const parsedDeviceId = extractDeviceId(decoded);
+            const parsedDeviceId = extractDeviceId(parseWifiResponse(decoded));
             const fallbackDeviceId = typeof activeDevice.id === 'string' ? activeDevice.id.trim() : '';
             const nextDeviceId = parsedDeviceId ?? (fallbackDeviceId.length > 0 ? fallbackDeviceId : null);
 
@@ -191,6 +215,13 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
             onNext(nextDeviceId, activeDevice);
         } catch (error) {
             console.error('Error enviando credenciales o esperando respuesta:', error);
+
+            if (error instanceof DeviceResponseError) {
+                const known = DEVICE_ERRORS[error.code];
+                onError(known?.title, known?.message);
+            } else {
+                onError();
+            }
         } finally {
             setIsWaitingResponse(false);
             setIsSending(false);
@@ -251,10 +282,10 @@ export default function ConfigureWifiStep({ onNext, onBack, device }: ConfigureW
 
                 <Button
                     mode="text"
-                    onPress={onBack}
+                    onPress={onCancel}
                     labelStyle={{ color: theme.colors.onSurfaceVariant }}
                 >
-                    Volver
+                    Cancelar
                 </Button>
             </ButtonsContainer>
         </Container>

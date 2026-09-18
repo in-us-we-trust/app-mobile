@@ -4,15 +4,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import styled from 'styled-components/native';
 
 type NoDeviceStateProps = {
+    title: string;
+    description: string;
     onLink: () => void;
 };
 
 /**
- * Estado para la lista de contactos cuando el usuario todavía no vinculó
- * ningún timbre. Los contactos dependen de las fotos y el reconocimiento del
- * dispositivo, así que sin timbre no tiene sentido dejar agregar personas.
+ * Estado para las pantallas que dependen del timbre (contactos, eventos)
+ * cuando el usuario todavía no vinculó ningún dispositivo.
  */
-export function NoDeviceState({ onLink }: NoDeviceStateProps) {
+export function NoDeviceState({ title, description, onLink }: NoDeviceStateProps) {
     const theme = useTheme();
 
     return (
@@ -32,14 +33,9 @@ export function NoDeviceState({ onLink }: NoDeviceStateProps) {
                 </PowerBadge>
             </IconWrapper>
 
-            <Title color={theme.colors.onBackground}>
-                Vinculá tu timbre{'\n'}para agregar contactos
-            </Title>
+            <Title color={theme.colors.onBackground}>{title}</Title>
 
-            <Description color={theme.colors.onSurfaceVariant}>
-                Los contactos usan las fotos y el reconocimiento de tu timbre. Vinculá un
-                dispositivo para empezar a agregar personas.
-            </Description>
+            <Description color={theme.colors.onSurfaceVariant}>{description}</Description>
 
             <LinkButton
                 mode="contained"

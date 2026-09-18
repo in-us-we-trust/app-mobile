@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import { useTheme, Text } from 'react-native-paper';
 import styled from 'styled-components/native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useDevice } from '@/presentation/device/hooks/useDevice';
+import { NoDeviceState } from '@/presentation/device/components/NoDeviceState';
 import { useEvents } from '../hooks/useEvents';
 import { FeaturedCard } from '../components/FeaturedCard';
 import { EventRow } from '../components/EventRow';
@@ -18,6 +20,15 @@ export default function EventsScreen() {
     const { urgentEvent, events, loading, error, refresh } = useEvents();
     const { suggestion, dismissSuggestion } = useSuggestedContact();
     const { setSelectedCaptures, addSuggestedCaptures } = usePhotoPicker();
+    const { device, isLoading: isLoadingDevice, fetchDevice } = useDevice();
+
+    // Se revalida al entrar al tab: el usuario puede vincular el timbre desde
+    // la pantalla de Dispositivo y volver acá sin remontar la app.
+    useFocusEffect(
+        useCallback(() => {
+            void fetchDevice();
+        }, [fetchDevice]),
+    );
 
     const handlePress = (event: HomeEvent) => {
         router.push(`/event/${event.trackId}`);
@@ -42,10 +53,21 @@ export default function EventsScreen() {
 
     // El spinner a pantalla completa es solo para la primera carga; en un refresh
     // posterior ya hay contenido y alcanza con el RefreshControl de la lista.
-    if (loading && !hasContent) {
+    if ((loading && !hasContent) || (isLoadingDevice && !device)) {
         content = (
             <CenteredView bg={theme.colors.background}>
                 <ActivityIndicator color={theme.colors.primary} />
+            </CenteredView>
+        );
+    } else if (!device) {
+        // Sin timbre vinculado no hay eventos que registrar.
+        content = (
+            <CenteredView bg={theme.colors.background}>
+                <NoDeviceState
+                    title={'Vinculá tu timbre\npara empezar a registrar eventos'}
+                    description="Cada vez que alguien toque el timbre vas a ver acá quién fue y cuándo. Vinculá un dispositivo para empezar."
+                    onLink={() => router.push('/(app-name)/(tabs)/device/link-device')}
+                />
             </CenteredView>
         );
     } else if (error) {

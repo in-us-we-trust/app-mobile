@@ -4,11 +4,10 @@ import { Button, Text, useTheme } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import styled from 'styled-components/native';
-import { router } from 'expo-router';
 
 interface ScanQRStepProps {
     onNext: (data: string) => void;
-    onBack: () => void;
+    onCancel: () => void;
 }
 
 const Container = styled.View`
@@ -53,7 +52,7 @@ const ButtonsContainer = styled.View`
   gap: 12px;
 `;
 
-export default function ScanQRStep({ onNext, onBack }: ScanQRStepProps) {
+export default function ScanQRStep({ onNext, onCancel }: ScanQRStepProps) {
     const theme = useTheme();
     const [permission, requestPermission] = useCameraPermissions();
     const [scanning, setScanning] = useState(false);
@@ -133,7 +132,7 @@ export default function ScanQRStep({ onNext, onBack }: ScanQRStepProps) {
                 </Button>
                 <Button
                     mode="text"
-                    onPress={() => router.navigate('/device')}
+                    onPress={onCancel}
                     style={{ marginTop: 4 }}
                     contentStyle={{ height: 44 }}
                 >

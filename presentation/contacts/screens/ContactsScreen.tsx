@@ -9,7 +9,7 @@ import { ContactRow } from '../components/ContactRow';
 import { AddContactRow } from '../components/AddContactRow';
 import { EmptyState } from '../components/EmptyState';
 import { EmptyFilterState } from '../components/EmptyFilterState';
-import { NoDeviceState } from '../components/NoDeviceState';
+import { NoDeviceState } from '@/presentation/device/components/NoDeviceState';
 
 export default function ContactsScreen() {
     const router = useRouter();
@@ -44,6 +44,8 @@ export default function ContactsScreen() {
         return (
             <Container>
                 <NoDeviceState
+                    title={'Vinculá tu timbre\npara agregar contactos'}
+                    description="Los contactos usan las fotos y el reconocimiento de tu timbre. Vinculá un dispositivo para empezar a agregar personas."
                     onLink={() => router.push('/(app-name)/(tabs)/device/link-device')}
                 />
             </Container>
