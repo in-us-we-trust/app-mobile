@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 import styled from 'styled-components/native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { TextInput, Switch, Button, HelperText } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ContactType } from './NewContactTypeScreen';
@@ -115,9 +116,10 @@ export default function NewContactDetailsScreen() {
 
   return (
     <Container>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={{ padding: 20, alignItems: 'center', flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
+        bottomOffset={24}
       >
         {selectedCaptures.length === 0 ? (
           <>
@@ -254,7 +256,7 @@ export default function NewContactDetailsScreen() {
             Cancelar
           </Button>
         </Footer>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </Container>
   );
 }

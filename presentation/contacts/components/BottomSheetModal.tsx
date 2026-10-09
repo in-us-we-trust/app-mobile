@@ -1,5 +1,6 @@
 import React from 'react';
-import { KeyboardAvoidingView, Modal, Platform, Pressable } from 'react-native';
+import { Modal, Pressable } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import styled from 'styled-components/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -15,7 +16,7 @@ export function BottomSheetModal({ visible, onClose, title, children }: BottomSh
         <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
             <Backdrop onPress={onClose}>
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior="padding"
                     style={{ width: '100%' }}
                 >
                     {/* onPress vacío para que el toque no se propague al Backdrop y cierre el modal */}

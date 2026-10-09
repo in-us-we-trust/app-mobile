@@ -142,12 +142,6 @@ export default function CustomDrawer(props: DrawerContentComponentProps) {
 
                 <ItemsContainer>
                     <DrawerItem
-                        icon="account-outline"
-                        label="Perfil"
-                        active={currentRoute === 'profile'}
-                        onPress={() => router.push('/(app-name)/profile')}
-                    />
-                    <DrawerItem
                         icon="cog-outline"
                         label="Configuración"
                         active={currentRoute === 'settings'}

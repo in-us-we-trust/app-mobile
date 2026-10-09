@@ -196,22 +196,6 @@ export default function SettingsScreen() {
                         </View>
                     )}
                 </StyledCard>
-
-                <SectionLabel>Cuenta</SectionLabel>
-                <StyledCard>
-                    <List.Item
-                        title="Perfil"
-                        left={(props) => <List.Icon {...props} icon="account" />}
-                        right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    />
-                    <Divider />
-                    <List.Item
-                        title="Cambiar contraseña"
-                        left={(props) => <List.Icon {...props} icon="lock" />}
-                        right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    />
-                </StyledCard>
-
                 <SectionLabel>Aplicación</SectionLabel>
                 <StyledCard>
                     <List.Item

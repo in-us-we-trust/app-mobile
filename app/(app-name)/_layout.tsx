@@ -38,15 +38,6 @@ export default function AppLayout() {
                     options={{ drawerLabel: 'Inicio', headerShown: false }}
                 />
                 <Drawer.Screen
-                    name="profile"
-                    options={{
-                        drawerLabel: 'Perfil',
-                        title: 'Perfil',
-                        headerShown: true,
-                        headerLeft: backButton,
-                    }}
-                />
-                <Drawer.Screen
                     name="settings"
                     options={{
                         drawerLabel: 'Configuración',

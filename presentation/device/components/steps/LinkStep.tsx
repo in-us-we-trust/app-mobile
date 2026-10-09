@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Text, TextInput, useTheme, ActivityIndicator } from 'react-native-paper';
 import styled from 'styled-components/native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Device } from 'react-native-ble-plx';
 import { useLinkDevice } from '@/presentation/device/hooks/useLinkDevice';
@@ -75,87 +76,94 @@ export default function LinkStep({ deviceId, device, onNext, onCancel }: LinkSte
     }[status];
 
     return (
-        <Container style={{ backgroundColor: theme.colors.background }}>
-            <IllustrationContainer backgroundColor={theme.colors.surfaceVariant}>
-                {status === 'linking' ? (
-                    <ActivityIndicator size="large" color={theme.colors.primary} />
-                ) : (
-                    <MaterialCommunityIcons name={icon as any} size={80} color={iconColor} />
-                )}
-            </IllustrationContainer>
+        <KeyboardAwareScrollView
+            bottomOffset={24}
+            keyboardShouldPersistTaps="handled"
+            style={{ backgroundColor: theme.colors.background }}
+            contentContainerStyle={{ flexGrow: 1 }}
+        >
+            <Container style={{ backgroundColor: theme.colors.background }}>
+                <IllustrationContainer backgroundColor={theme.colors.surfaceVariant}>
+                    {status === 'linking' ? (
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                    ) : (
+                        <MaterialCommunityIcons name={icon as any} size={80} color={iconColor} />
+                    )}
+                </IllustrationContainer>
 
-            <Title variant="headlineSmall" style={{ color: theme.colors.onBackground }}>
-                {status === 'idle' && 'Vincular dispositivo'}
-                {status === 'linking' && 'Vinculando...'}
-                {status === 'success' && '¡Dispositivo vinculado!'}
-                {status === 'error' && 'Error al vincular'}
-            </Title>
+                <Title variant="headlineSmall" style={{ color: theme.colors.onBackground }}>
+                    {status === 'idle' && 'Vincular dispositivo'}
+                    {status === 'linking' && 'Vinculando...'}
+                    {status === 'success' && '¡Dispositivo vinculado!'}
+                    {status === 'error' && 'Error al vincular'}
+                </Title>
 
-            <Subtitle variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                {status === 'idle' && 'Poné un nombre a tu timbre para identificarlo fácilmente.'}
-                {status === 'linking' && 'Estamos conectando tu timbre, esperá un momento.'}
-                {status === 'success' && 'Tu timbre fue vinculado correctamente. Ya podés usarlo.'}
-                {status === 'error' && 'No pudimos vincular el timbre. Intentalo de nuevo.'}
-            </Subtitle>
+                <Subtitle variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    {status === 'idle' && 'Poné un nombre a tu timbre para identificarlo fácilmente.'}
+                    {status === 'linking' && 'Estamos conectando tu timbre, esperá un momento.'}
+                    {status === 'success' && 'Tu timbre fue vinculado correctamente. Ya podés usarlo.'}
+                    {status === 'error' && 'No pudimos vincular el timbre. Intentalo de nuevo.'}
+                </Subtitle>
 
-            {/* Input de nombre — visible solo en idle y error */}
-            {(status === 'idle' || status === 'error') && (
-                <StyledInput
-                    label="Nombre del dispositivo"
-                    mode="outlined"
-                    value={deviceName}
-                    onChangeText={setDeviceName}
-                    left={<TextInput.Icon icon="doorbell" />}
-                />
-            )}
-
-            <ButtonsContainer>
-                {status === 'idle' && (
-                    <>
-                        <Button
-                            mode="contained"
-                            icon="link-variant"
-                            onPress={handleLink}
-                            disabled={!deviceName.trim()}
-                        >
-                            Vincular
-                        </Button>
-                        <Button
-                            mode="text"
-                            onPress={onCancel}
-                            labelStyle={{ color: theme.colors.onSurfaceVariant }}
-                        >
-                            Cancelar
-                        </Button>
-                    </>
+                {/* Input de nombre — visible solo en idle y error */}
+                {(status === 'idle' || status === 'error') && (
+                    <StyledInput
+                        label="Nombre del dispositivo"
+                        mode="outlined"
+                        value={deviceName}
+                        onChangeText={setDeviceName}
+                        left={<TextInput.Icon icon="doorbell" />}
+                    />
                 )}
 
-                {status === 'success' && (
-                    <Button mode="contained" icon="check" onPress={onNext}>
-                        Ir al dispositivo
-                    </Button>
-                )}
+                <ButtonsContainer>
+                    {status === 'idle' && (
+                        <>
+                            <Button
+                                mode="contained"
+                                icon="link-variant"
+                                onPress={handleLink}
+                                disabled={!deviceName.trim()}
+                            >
+                                Vincular
+                            </Button>
+                            <Button
+                                mode="text"
+                                onPress={onCancel}
+                                labelStyle={{ color: theme.colors.onSurfaceVariant }}
+                            >
+                                Cancelar
+                            </Button>
+                        </>
+                    )}
 
-                {status === 'error' && (
-                    <>
-                        <Button
-                            mode="contained"
-                            icon="refresh"
-                            onPress={handleLink}
-                            disabled={!deviceName.trim()}
-                        >
-                            Reintentar
+                    {status === 'success' && (
+                        <Button mode="contained" icon="check" onPress={onNext}>
+                            Ir al dispositivo
                         </Button>
-                        <Button
-                            mode="text"
-                            onPress={onCancel}
-                            labelStyle={{ color: theme.colors.onSurfaceVariant }}
-                        >
-                            Cancelar
-                        </Button>
-                    </>
-                )}
-            </ButtonsContainer>
-        </Container>
+                    )}
+
+                    {status === 'error' && (
+                        <>
+                            <Button
+                                mode="contained"
+                                icon="refresh"
+                                onPress={handleLink}
+                                disabled={!deviceName.trim()}
+                            >
+                                Reintentar
+                            </Button>
+                            <Button
+                                mode="text"
+                                onPress={onCancel}
+                                labelStyle={{ color: theme.colors.onSurfaceVariant }}
+                            >
+                                Cancelar
+                            </Button>
+                        </>
+                    )}
+                </ButtonsContainer>
+            </Container>
+        </KeyboardAwareScrollView>
     );
 }

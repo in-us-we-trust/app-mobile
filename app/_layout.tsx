@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { PaperProvider, DefaultTheme } from 'react-native-paper';
 import { useAuth } from '@/presentation/auth/hooks/useAuth';
 
@@ -14,6 +15,7 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
+            <KeyboardProvider>
             <PaperProvider theme={DefaultTheme}>
                 {Platform.OS === 'web' ? (
                     <View style={{
@@ -57,6 +59,7 @@ export default function RootLayout() {
                     <Stack screenOptions={{ headerShown: false }} />
                 )}
             </PaperProvider>
+            </KeyboardProvider>
         </SafeAreaProvider>
     );
 }

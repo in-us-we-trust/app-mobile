@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button, Text, TextInput, useTheme } from 'react-native-paper';
 import styled from 'styled-components/native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Device } from 'react-native-ble-plx';
 import { Buffer } from 'buffer';
@@ -229,65 +230,72 @@ export default function ConfigureWifiStep({ onNext, onCancel, onError, device }:
     };
 
     return (
-        <Container style={{ backgroundColor: theme.colors.background }}>
-            <IllustrationContainer backgroundColor={theme.colors.surfaceVariant}>
-                <MaterialCommunityIcons
-                    name="wifi"
-                    size={80}
-                    color={theme.colors.primary}
-                />
-            </IllustrationContainer>
-
-            <Title variant="headlineSmall" style={{ color: theme.colors.onBackground }}>
-                Configurá el WiFi
-            </Title>
-
-            <Subtitle variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-                Ingresá los datos de tu red WiFi.
-            </Subtitle>
-
-            <StyledInput
-                label="Nombre de red (SSID)"
-                mode="outlined"
-                value={ssid}
-                onChangeText={setSsid}
-                left={<TextInput.Icon icon="wifi" />}
-            />
-
-            <StyledInput
-                label="Contraseña"
-                mode="outlined"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                left={<TextInput.Icon icon="lock" />}
-                right={
-                    <TextInput.Icon
-                        icon={showPassword ? 'eye-off' : 'eye'}
-                        onPress={() => setShowPassword(!showPassword)}
+        <KeyboardAwareScrollView
+            bottomOffset={24}
+            keyboardShouldPersistTaps="handled"
+            style={{ backgroundColor: theme.colors.background }}
+            contentContainerStyle={{ flexGrow: 1 }}
+        >
+            <Container style={{ backgroundColor: theme.colors.background }}>
+                <IllustrationContainer backgroundColor={theme.colors.surfaceVariant}>
+                    <MaterialCommunityIcons
+                        name="wifi"
+                        size={80}
+                        color={theme.colors.primary}
                     />
-                }
-            />
+                </IllustrationContainer>
 
-            <ButtonsContainer>
-                <Button
-                    mode="contained"
-                    icon="arrow-right"
-                    onPress={handleContinue}
-                    disabled={!ssid || !password || isWaitingResponse}
-                    loading={isSending || isWaitingResponse}
-                >
-                    {isWaitingResponse ? 'Esperando dispositivo...' : 'Continuar'}
-                </Button>
+                <Title variant="headlineSmall" style={{ color: theme.colors.onBackground }}>
+                    Configurá el WiFi
+                </Title>
 
-                <Button
-                    mode="text"
-                    onPress={onCancel}
-                    labelStyle={{ color: theme.colors.onSurfaceVariant }}
-                >
-                    Cancelar
-                </Button>
-            </ButtonsContainer>
-        </Container>
+                <Subtitle variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+                    Ingresá los datos de tu red WiFi.
+                </Subtitle>
+
+                <StyledInput
+                    label="Nombre de red (SSID)"
+                    mode="outlined"
+                    value={ssid}
+                    onChangeText={setSsid}
+                    left={<TextInput.Icon icon="wifi" />}
+                />
+
+                <StyledInput
+                    label="Contraseña"
+                    mode="outlined"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    left={<TextInput.Icon icon="lock" />}
+                    right={
+                        <TextInput.Icon
+                            icon={showPassword ? 'eye-off' : 'eye'}
+                            onPress={() => setShowPassword(!showPassword)}
+                        />
+                    }
+                />
+
+                <ButtonsContainer>
+                    <Button
+                        mode="contained"
+                        icon="arrow-right"
+                        onPress={handleContinue}
+                        disabled={!ssid || !password || isWaitingResponse}
+                        loading={isSending || isWaitingResponse}
+                    >
+                        {isWaitingResponse ? 'Esperando dispositivo...' : 'Continuar'}
+                    </Button>
+
+                    <Button
+                        mode="text"
+                        onPress={onCancel}
+                        labelStyle={{ color: theme.colors.onSurfaceVariant }}
+                    >
+                        Cancelar
+                    </Button>
+                </ButtonsContainer>
+            </Container>
+        </KeyboardAwareScrollView>
     );
 }
